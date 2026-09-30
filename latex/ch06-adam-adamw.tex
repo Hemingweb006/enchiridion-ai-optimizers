@@ -1,0 +1,165 @@
+% =====================================================================
+\chapter{Adam and AdamW}
+\label{ch:adam}
+% =====================================================================
+
+\section{Adam}
+
+\lettrine[lines=2,findent=2pt,nindent=0pt]{\color{inkred}E}{ven} if Momentum and RMSProp seem perfect, since they solved the noisy SGD pattern problem in an elegant way, they both have problems.
+
+\subsection*{First, for Momentum:}
+
+An objective function (or loss function) isn't always a calm, perfect convex function; it can be a steep valley, which could lead to having a gradient looking like this:
+\[
+\nabla g(x)=\begin{pmatrix}10000\\ 1\end{pmatrix}
+\]
+Let's say we have a learning rate $\gamma=0.001$:
+\[
+\gamma\,\nabla g(x)=\begin{pmatrix}10\\ 0.001\end{pmatrix}
+\begin{array}{l}\leftarrow\ \text{\color{inkgreen}big step}\\ \leftarrow\ \text{\color{inkgreen}tiny step}\end{array}
+\]
+So the gradient takes a big step in one direction, and a smaller one in another direction. Momentum's problem is that it can't notice it.
+
+\hl{Solution? RMSProp}, as explained before.
+
+\subsection*{The RMSProp problem:}
+
+\begin{goldbox}
+``RMSProp doesn't remember the direction that SGD is consistently pointing toward.''
+\end{goldbox}
+
+\Demo
+As we know, RMSProp also relies on EWA, so:\ednote{The notes use $t$ both as the index of the sum and as the current step; the sum index was renamed $k$, and the gradients are written $g_k$ in the sum.}
+\[
+v_T=(1-\beta)\sum_{k=0}^{T-1}\beta^k\,g_{T-k}^2
+\]
+with $g_k$ the randomly chosen gradient:
+\[
+g_k=\underbrace{g^*}_{\text{\color{inkgreen}real gradient}}+\underbrace{\varepsilon}_{\text{\color{inkgreen}noise}}
+\]
+\begin{align*}
+\iff v_T&=(1-\beta)\sum_{k=0}^{T-1}\beta^k\bigl(g^{*2}+\varepsilon^2+2g^*\varepsilon\bigr)\\
+\iff E[v_T]&=(1-\beta^T)\Bigl(E\bigl[g^{*2}\bigr]+\operatorname{Var}[\varepsilon]\Bigr)
+\end{align*}
+With bias correction:
+\[
+\boxed{E(\hat v_T)=E\bigl(g^{*2}\bigr)+\operatorname{Var}(\varepsilon)}
+\]
+This means that, for RMSProp, on average, $v_t$ follows the direction of the pointwise squared gradient. This means that if the gradient was pointing to:
+\[
+(10;\,-10;\,10;\,-10;\,10;\,\dots)\qquad\text{(oscillation)}
+\]
+RMSProp will remember:
+\[
+(100;\,100;\,100;\,100;\,\dots)
+\]
+And the same if the gradient was consistently $(10;10;10;\dots)$: it doesn't know where the gradient was pointing to.
+
+\hlp{Therefore, Momentum:}
+\begin{align*}
+v_T&=(1-\beta)\sum_{k=0}^{T-1}\beta^k\,g_{T-k},\qquad g_k=g^*+\varepsilon\\
+v_T&=(1-\beta)\sum_{k=0}^{T-1}\beta^k\,(g^*+\varepsilon)\\
+E(v_T)&=(1-\beta)\sum_{k=0}^{T-1}\beta^k\,E(g^*)\\
+E(v_T)&\simeq E(g^*)\implies\text{on average, Momentum follows the SGD's path.}
+\end{align*}
+
+\Q{What's the solution then? Why not combine Momentum and RMSProp?}
+
+\Def[Use Momentum for direction and RMSProp for scale.]{Def: Adam}
+
+Adam stands for \textbf{Ada}ptive \textbf{M}oment estimation, and its algorithm is as follows:
+
+\begin{center}
+\begin{tikzpicture}
+  \node (eq) at (0,0) {$\left\{\begin{aligned}
+    v_t&=\beta_1 v_{t-1}+(1-\beta_1)\,\nabla f_t(x_t)\\
+    s_t&=\beta_2 s_{t-1}+(1-\beta_2)\,\nabla f_t^{\,2}(x_t)
+  \end{aligned}\right.$};
+  \node[inkred,font=\small,anchor=west] (mo) at (4.2,0.3) {Moments};
+  \node[inkgreen,font=\small,align=left,anchor=west] at (4.2,-0.35) {$E(v_t)\simeq E\bigl(\nabla f_t(x_t)\bigr)$\\ $E(s_t)\simeq E\bigl(\nabla f_t^{\,2}(x_t)\bigr)$};
+  \draw[-Stealth,inkred] (mo.west) -- (3.55,0.35);
+  \draw[-Stealth,inkred] (mo.west) -- (3.65,-0.3);
+\end{tikzpicture}
+\end{center}
+
+\begin{warnbox}[Bias correction is mandatory for both $v_t$ and $s_t$!]
+\[
+\hat s_t=\frac{s_t}{1-\beta_2^t}\qquad\text{and}\qquad\hat v_t=\frac{v_t}{1-\beta_1^t}
+\]
+Both start from 0, and $v_t$ (with $\beta_1=0.9$) warms up faster than $s_t$ (with $\beta_2=0.999$, it takes about 1000 steps!). Without correction, $s_t$ stays close to 0 at the beginning, and dividing by $\sqrt{s_t}$ would make the first steps huge.\ednotemark
+\end{warnbox}
+\ednotetext{The notes say bias correction is needed ``for the only reason that $v_t$ warms up faster than $s_t$''. The difference of speed matters, but the root cause is that both averages start at 0 and are biased towards 0; the slow one ($s_t$) is the dangerous one, because it is in the denominator. The last sentence of the box was added to make this explicit.}
+
+\begin{keyformula}
+\[
+x_{t+1}=x_t-\alpha\,\frac{\hat v_t}{\sqrt{\hat s_t}+\varepsilon}
+\]
+\end{keyformula}
+
+The authors of Adam advise to choose:
+\[
+\beta_1=0.9\qquad\text{and}\qquad\beta_2=0.999
+\]
+$\alpha$ should be tuned.\ednote{The paper (Kingma \& Ba, 2014) proposes $\alpha=0.001$ and $\varepsilon=10^{-8}$ as defaults.}
+
+So, as we can see, Adam solves both Momentum and RMSProp problems by combining them both. Even more, Adam is really fast, and that's why it's the most used optimizer; it's even the ``default one''.
+
+\section{AdamW}
+
+\subsection*{\color{inkgreen}Intro to regularization:}
+
+Regularization is one of the solutions that we may adopt when a model is overfitting. Here is the idea:
+
+\begin{center}
+\begin{tikzpicture}[x=0.6cm,y=0.6cm]
+\foreach \dx/\lab/\kind in {0/{High bias\\(Under-fitting)}/1, 6.5/{Perfect}/2, 13/{High variance\\(Overfitting)}/3}{
+  \begin{scope}[shift={(\dx,0)}]
+    \draw[-Stealth,thick] (0,0) -- (4.6,0); \draw[-Stealth,thick] (0,0) -- (0,3.4);
+    \foreach \p in {(0.5,0.6),(0.9,0.3),(1.3,0.8),(0.6,1.2),(1.1,1.4),(1.7,0.4),(0.4,1.8),(1.6,1.1)} \draw[black!80] \p circle (2.2pt);
+    \foreach \p in {(2.2,2.9),(2.9,2.4),(3.5,2.9),(2.6,1.8),(3.4,1.6),(3.9,2.2),(1.3,2.6),(2.1,1.2)} \node[inkred,font=\small] at \p {$\times$};
+    \ifcase\kind\or
+      \draw[inkgreen,very thick] (0.8,3.2) -- (3.0,0.1);
+    \or
+      \draw[inkgreen,very thick] (1.0,3.2) .. controls (1.4,1.7) and (2.0,0.9) .. (4.4,0.5);
+    \or
+      \draw[inkgreen,very thick] (0.2,2.0) .. controls (0.2,0.0) and (2.4,0.1) .. (2.2,0.9) .. controls (2.0,1.5) and (1.0,1.6) .. (1.9,2.2) .. controls (2.4,2.6) and (3.0,3.1) .. (3.4,2.6) .. controls (3.7,2.2) and (2.0,2.4) .. (1.0,2.1) .. controls (0.5,2.0) and (0.2,2.4) .. (0.2,2.0);
+    \fi
+    \node[inkblue,font=\small,align=center,anchor=north] at (2.3,-0.3) {\lab};
+  \end{scope}}
+\end{tikzpicture}
+\end{center}
+
+One of the causes that makes the model overfit the data is ``giving too much weight to a neuron'' (we will treat that deeply in Neural Networks). The solution is adding an $L_2$ penalty:
+\begin{center}
+\begin{tikzpicture}
+  \node (eq) at (0,0) {\Large $\tilde L(W)=L(W)+\lambda\lVert W\rVert_F^2$};
+  \node[inkred,font=\small,align=left,text width=7.5cm,anchor=north west] at (0.6,-0.6) {Remark: you may see $\lVert W\rVert_2^2$ for the Euclidean norm, but for neural networks weights are matrices, and for matrices we compute the ``Frobenius norm'':\\[3pt] $\displaystyle\lVert W\rVert_F=\sqrt{\sum_i\sum_j w_{ij}^2}$};
+\end{tikzpicture}\ednotemark
+\end{center}
+\ednotetext{The notes write $\lVert W\rVert_F=\bigl|\sum_i\sum_j w_{ij}^2\bigr|$, without the square root; the square root belongs to the norm, and it disappears in $\lVert W\rVert_F^2=\sum_i\sum_j w_{ij}^2$, which is what the penalty uses.}
+
+\hlg{So, like that, the model will try to avoid adding weights to neurons, since its goal is minimizing $\tilde L(W)$.}
+
+\Q{Is this related to Adam?}
+
+Yes, and deeply. As I said, Adam leads to faster convergence. But applied to neural networks, if ``adding weights'' speeds up convergence, then Adam is happy and will do it, so we need to avoid that.\ednote{Why can't we just add $\lambda\lVert W\rVert^2$ to the loss of Adam? Because Adam divides \emph{every} gradient by $\sqrt{\hat s_t}$, including the gradient of the penalty ($2\lambda W$). The weights that had large gradients get a large $\hat s_t$, so they are regularized \emph{less}, which is the opposite of what we want. AdamW (Loshchilov \& Hutter) ``decouples'' the weight decay: it is applied directly to the weights, outside of the adaptive division. That's why the term $\alpha\lambda x_t$ below is not divided by $\sqrt{\hat s_t}$.}
+
+The solution? Let me introduce:
+
+\Def[Use Adam but with Weight Decay for generalization.]{Def: AdamW}
+
+AdamW has the same formula as Adam, but:
+\begin{center}
+\begin{tikzpicture}
+  \node (a) at (0,0) {\Large $x_{t+1}=x_t-\alpha\,\dfrac{\hat v_t}{\sqrt{\hat s_t}+\varepsilon}-\alpha\lambda x_t$};
+  \node[inkgreen,font=\small\itshape,align=left,anchor=west] (w) at (3.9,-0.9) {Weight decay\\ (we will detail this more\\ in the Regularization part)};
+  \draw[-Stealth,inkgreen] (w.north west) -- (3.2,-0.3);
+\end{tikzpicture}
+\end{center}
+\begin{keyformula}
+\[
+\implies x_{t+1}=(1-\alpha\lambda)\,x_t-\alpha\,\frac{\hat v_t}{\sqrt{\hat s_t}+\varepsilon}
+\]
+\end{keyformula}
+
+When announced, AdamW was a huge discovery. It's commonly used for LLMs and large neural nets.

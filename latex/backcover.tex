@@ -1,0 +1,25 @@
+% =====================================================================
+%  Back cover (always on an even, left-hand page)
+% =====================================================================
+\clearpage
+\ifodd\value{page}\null\thispagestyle{empty}\clearpage\fi
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture,overlay,x=1cm,y=1cm]
+  \begin{scope}[shift={(current page.south west)}]
+    \fill[nightdeep] (0,0) rectangle (21,29.7);
+    \begin{scope}[opacity=0.55]
+      \clip (0,0) rectangle (21,9);
+      \begin{scope}[yshift=-6.4cm] \input{gen/cover-contours} \end{scope}
+    \end{scope}
+    \fill[nightdeep,path fading=south] (0,4) rectangle (21,9.1);
+    \draw[goldleaf,line width=1.4pt] (2.5,25.6) -- (18.5,25.6);
+    \node[goldleaf,font=\fontsize{20}{24}\selectfont\itshape,align=center] at (10.5,24.3) {From one step down the gradient\\ to the optimizers that train LLMs.};
+    \node[goldpale,text width=14.5cm,align=justify,font=\normalsize] at (10.5,18.4) {%
+      Why is the learning rate of Gradient Descent $1/L$, and how fast does it converge? Why do we prefer Stochastic Gradient Descent even if it is slower and noisier? Where does the ``exponential'' of the exponentially weighted average come from? Why does RMSProp divide by a square \emph{root}? And why did the world move from Adam to AdamW?\par\medskip
+      \emph{The Enchiridion for AI Optimizers Theory} answers these questions one proof at a time: convexity and L-smoothness, Gradient Descent, SGD, Momentum and Nesterov, RMSProp, Adam and AdamW, AdaMax, AMSGrad, QHAdam and Yogi, and the learning rate schedules, from step decay to warm up and cosine annealing.\par\medskip
+      Written by hand by Reda Louriki, and typeset in \LaTeX\ by Claude Opus 5.5.};
+    \draw[goldleaf,line width=0.4pt] (2.5,12.4) -- (18.5,12.4);
+    \node[goldleaf,font=\fontsize{15}{18}\selectfont] at (10.5,11.3) {\textls[300]{REDA LOURIKI}};
+    \node[goldpale!70,font=\sffamily\scriptsize] at (10.5,10.5) {\textls[300]{THE ENCHIRIDION SERIES \ $\cdot$\ BOOK II}};
+  \end{scope}
+\end{tikzpicture}

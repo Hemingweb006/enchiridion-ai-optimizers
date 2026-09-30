@@ -1,0 +1,67 @@
+% =====================================================================
+\chapter*{Notes on this Edition}
+\addcontentsline{toc}{chapter}{Notes on this Edition}
+\markboth{Notes on this Edition}{Notes on this Edition}
+% =====================================================================
+
+This book is a faithful transcription of the author's handwritten notes. The wording, the examples and the order of the explanations are the author's. The typesetting only corrected grammar and spelling silently; everything that changes a formula, an index, a number, a name or a conclusion is listed below (and footnoted in the text as \textsf{\bfseries\color{inkgold}Editor's note}).
+
+\newcommand{\errata}[1]{\par\medskip\noindent{\color{inkred}\itshape #1}\par\smallskip}
+
+\errata{Chapter I: Prerequisite}
+\begin{itemize}
+  \item Th 1 needs $f$ differentiable. First-order Taylor remainder: $o(h)$, not $o(h^2)$. The converse of Th 1 was mentioned.
+  \item The ``global minimum formula'' proves that a critical point is a global minimum, not that it is unique (that needs strict convexity).
+  \item The limit $t\to0$ was added in the definition of the Hessian (Th 2).
+  \item Lipschitz constant: $L>0$, not $L\in\,]0,1[$ (Def 2 and Th 3).
+  \item Th 3 (descent lemma) is an implication of L-smoothness, not an equivalence; the ``$\iff$'' after Cauchy--Schwarz are implications.
+  \item ``Def 4'' renamed Th 4; the sign of (2) was fixed; the optimality condition in its proof is a vector equation, $z-y=-\frac1L(\nabla f(y)-\nabla f(x))$, not an equation on norms.
+\end{itemize}
+
+\errata{Chapter II: Gradient Descent}
+\begin{itemize}
+  \item $\lVert f(x)\rVert^2\to\lVert\nabla f(x)\rVert^2$ in the descent inequality.
+  \item The inequality after co-coercivity is on \emph{squared} norms.
+  \item What decreases is the distance $\lVert x_k-x^*\rVert$, not ``the sequence $(x_k)$''.
+  \item $\beta$ is defined with $\lVert x_0-x^*\rVert$ (a constant), not $\lVert x_k-x^*\rVert$.
+  \item The final bound is read as: $K=C/\varepsilon$ steps are \emph{enough} to reach an error $\varepsilon$ (the notes box $K\le C/\varepsilon_K$).
+\end{itemize}
+
+\errata{Chapter III: Stochastic Gradient Descent}
+\begin{itemize}
+  \item Sums from $i=1$ to $n$ (not $n-1$); missing $\nabla$ in the full gradient; noise $\varepsilon\in\mathbb{R}^d$.
+  \item Complexity of SGD for convex L-smooth functions: $O(1/\varepsilon^2)$, not $O(1/\sqrt\varepsilon)$ (which would be faster than GD).
+  \item Mini-batch sum up to $\beta-1$; ASGD average from $k=0$ to $K-1$, with $\bar x_K\approx x^*$ (law of large numbers); gradient at $x_{k-1}$ in the SGD step.
+\end{itemize}
+
+\errata{Chapter IV: Momentum and Nesterov}
+\begin{itemize}
+  \item Geometric sums start at $i=0$.
+  \item Precisions: PyTorch initialises the momentum buffer with the first gradient; classical RMSProp does not use bias correction (Adam does).
+\end{itemize}
+
+\errata{Chapter V: RMSProp}
+\begin{itemize}
+  \item With $v_0=0$, $v_t$ is a finite sum from $k=0$ to $t-1$.
+\end{itemize}
+
+\errata{Chapter VI: Adam and AdamW}
+\begin{itemize}
+  \item Sum index renamed $k$ (it clashed with $t$).
+  \item The reason for bias correction was made explicit (both averages start at 0; the slow one is in the denominator).
+  \item Frobenius norm: $\lVert W\rVert_F=\sqrt{\sum\sum w_{ij}^2}$.
+  \item Added: why weight decay must be decoupled from Adam's adaptive division.
+\end{itemize}
+
+\errata{Chapter VII: Other Adam Versions and Improvements}
+\begin{itemize}
+  \item AdaMax: $u_t=\max(\beta_2u_{t-1},|g_t|)$ (the notes put $\beta_2$ on $|g_t|$); details of the limit $p\to\infty$; the example ends at $u_N=90$ (the notes' $72.9$ is below the current gradient, which is impossible).
+  \item AMSGrad: the maximum is on the second moment $s_t$.
+  \item QHAdam: $\tilde s_t=(1-\nu)g_t^2+\nu\hat s_t$; ``hyperbolic'' discounting; the image of the notes was redrawn.
+  \item Yogi: $\Delta s_t$ for the example is $-9999(1-\beta_2)$; Adam's problem is that $s_t$ \emph{decreases} too fast (the effective step \emph{grows}), not that the step becomes slow; the sign compares $g_t^2$ with $s_{t-1}$.
+\end{itemize}
+
+\errata{Chapter VIII: Learning Rate Schedule}
+\begin{itemize}
+  \item \textbf{Completed during the typesetting} (the notes stop at the title): Def 5, Warm Up, with its motivation, the linear warm up formula, warm up + cosine annealing, an example, rules of thumb, and the plots of every schedule.
+\end{itemize}

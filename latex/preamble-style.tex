@@ -1,0 +1,129 @@
+% =====================================================================
+%  Style: colours echo the author's handwritten ink
+%  red = part titles, green = algorithm / remarks, purple = steps,
+%  blue = questions, gold/brown = key sentences
+% =====================================================================
+\definecolor{inkred}{HTML}{C62828}
+\definecolor{inkgreen}{HTML}{2E7D32}
+\definecolor{inkpurple}{HTML}{6A1B9A}
+\definecolor{inkblue}{HTML}{1565C0}
+\definecolor{inkgold}{HTML}{8D6E00}
+\definecolor{inkgray}{HTML}{5F6368}
+\definecolor{nightdeep}{HTML}{0A1224}
+\definecolor{nightmid}{HTML}{14213F}
+\definecolor{nightlight}{HTML}{2A3F6E}
+\definecolor{copper}{HTML}{E0894B}
+\definecolor{cyanglow}{HTML}{4FC3F7}
+\definecolor{violetglow}{HTML}{B388FF}
+\definecolor{greenglow}{HTML}{69F0AE}
+\definecolor{redglow}{HTML}{FF5252}
+\definecolor{goldleaf}{HTML}{D8B25A}
+\definecolor{goldpale}{HTML}{F1DDA6}
+\definecolor{paper}{HTML}{FBF8F1}
+
+% ---------- chapter numbers as Roman numerals (like the notes: I., II., ...) ----
+\renewcommand{\thechapter}{\Roman{chapter}}
+\renewcommand{\thesection}{\thechapter.\arabic{section}}
+\setcounter{secnumdepth}{1}
+\setcounter{tocdepth}{1}
+
+% ---------- chapter title ----------
+\titleformat{\chapter}[display]
+  {\normalfont\filleft}
+  {\begin{tikzpicture}[baseline]
+     \node[inner sep=0pt,font=\sffamily\small\bfseries\color{inkgray},anchor=east] at (0,0.95) {C\,H\,A\,P\,T\,E\,R};
+     \node[inner sep=0pt,anchor=east,font=\fontsize{64}{64}\selectfont\color{inkred}] at (0,0) {\thechapter};
+   \end{tikzpicture}}
+  {6pt}
+  {\color{inkred}\Huge\itshape}
+  [\vspace{4pt}{\color{goldleaf}\titlerule[1.2pt]}\vspace{-2pt}{\color{inkgold}\titlerule[0.4pt]}]
+\titleformat{name=\chapter,numberless}[display]
+  {\normalfont\filleft}{}{0pt}{\color{inkred}\Huge\itshape}
+  [\vspace{4pt}{\color{goldleaf}\titlerule[1.2pt]}]
+\titlespacing*{\chapter}{0pt}{10pt}{34pt}
+
+\titleformat{\section}
+  {\normalfont\Large\itshape\color{inkred}}{\textsf{\small\bfseries\color{inkgray}\thesection}\quad}{0pt}{}
+\titlespacing*{\section}{0pt}{18pt}{8pt}
+\titleformat{\subsection}
+  {\normalfont\large\color{inkgreen}\itshape}{}{0pt}{}
+\titlespacing*{\subsection}{0pt}{12pt}{4pt}
+
+% ---------- headers ----------
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{goldleaf}\leaders\hrule height \headrulewidth\hfill}}
+\fancyhead[LE]{\sffamily\footnotesize\color{inkgray}\leftmark}
+\fancyhead[RO]{\sffamily\footnotesize\color{inkgray}\rightmark}
+\fancyfoot[LE,RO]{\sffamily\small\color{inkgray}\thepage}
+\renewcommand{\chaptermark}[1]{\markboth{\thechapter.\ #1}{}}
+\renewcommand{\sectionmark}[1]{\markright{#1}}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}%
+  \fancyfoot[C]{\sffamily\small\color{inkgray}\thepage}}
+
+% ---------- the author's recurring "handwriting" devices ----------
+% green "Algorithm:" heading
+\newcommand{\Algo}[1][Algorithm]{\par\medskip\noindent{\color{inkgreen}\Large\itshape #1:}\par\smallskip}
+% purple "# Step n:" heading
+\newcommand{\Step}[2][]{\par\medskip\noindent{\color{inkpurple}\sffamily\bfseries\#\,Step~#2:}\ifx&#1&\else\ {\color{inkpurple}\itshape #1}\fi\par\nobreak\smallskip}
+% purple questions the author asks the reader (in this notebook questions are purple)
+\newcommand{\Q}[1]{\par\medskip\noindent{\color{inkpurple}\itshape #1}\par\smallskip}
+% green "Def n:" / "Th n:" headings, optional gold motto
+\newcommand{\Def}[2][]{\par\medskip\noindent{\color{inkgreen}\large\itshape #2:}\ifx&#1&\else\ {\color{inkgold}\large\itshape ``#1''}\fi\par\nobreak\smallskip}
+% blue "Demo:" heading
+\newcommand{\Demo}[1][Demo]{\par\smallskip\noindent{\color{inkblue}\itshape #1:}\par\nobreak\smallskip}
+% blue remark heading (in this notebook remarks are blue)
+\newcommand{\Rem}[1][Remark]{\par\medskip\noindent{\color{inkblue}\itshape #1:}\ }
+% end of a proof
+\newcommand{\qedmark}{\ifmmode\qquad\text{\color{inkgold}$\blacksquare$}\else\hfill{\color{inkgold}$\blacksquare$}\fi}
+% red subheading inside a chapter (Problem / Solution etc. in green)
+\newcommand{\Prob}[1][Problem]{\par\medskip\noindent{\color{inkgreen}\itshape #1:}\par\nobreak\smallskip}
+% coloured inline emphasis
+\newcommand{\hl}[1]{{\color{inkblue}#1}}
+\newcommand{\hlg}[1]{{\color{inkgreen}#1}}
+\newcommand{\hlr}[1]{{\color{inkred}#1}}
+\newcommand{\hlp}[1]{{\color{inkpurple}#1}}
+\newcommand{\hlo}[1]{{\color{inkgold}#1}}
+
+% warning triangle (the author's ⚠)
+\newcommand{\warn}{\tikz[baseline=-0.6ex]{\draw[inkred,line width=0.9pt,line join=round] (-0.17,-0.13)--(0.17,-0.13)--(0,0.18)--cycle;
+  \node[inkred,font=\fontsize{7}{7}\selectfont\bfseries] at (0,-0.01) {!};}}
+
+% editor's note (every correction made during transcription is footnoted)
+\newcommand{\ednote}[1]{\footnote{\textsf{\bfseries\color{inkgold}Editor's note.} #1}}
+% inside boxes (minipages) put the mark in the box and the text right after the box
+\newcommand{\ednotemark}{\stepcounter{footnote}\textsuperscript{\thefootnote}}
+\newcommand{\ednotetext}[1]{\footnotetext{\textsf{\bfseries\color{inkgold}Editor's note.} #1}}
+
+% ---------- boxes ----------
+\tcbset{enhanced,breakable,boxrule=0pt,arc=2pt,left=10pt,right=10pt,top=6pt,bottom=6pt}
+\newtcolorbox{remarkbox}[1][Remark]{colback=inkgreen!5,borderline west={3pt}{0pt}{inkgreen},
+  title={\itshape #1:},coltitle=inkgreen,colbacktitle=inkgreen!5,attach title to upper,after title={\ }}
+\newtcolorbox{notebox}[1][Note]{colback=inkblue!5,borderline west={3pt}{0pt}{inkblue},
+  title={\itshape #1:},coltitle=inkblue,colbacktitle=inkblue!5,attach title to upper,after title={\ }}
+\newtcolorbox{warnbox}[1][Important remark!]{colback=inkred!5,borderline west={3pt}{0pt}{inkred},
+  title={\warn\ \itshape #1},coltitle=inkred,colbacktitle=inkred!5,attach title to upper,after title={\par\smallskip}}
+\newtcolorbox{goldbox}{colback=goldpale!45,borderline={0.6pt}{0pt}{goldleaf},
+  fontupper=\itshape\large\color{inkgold},halign=center}
+\newtcolorbox{keyformula}[1][]{colback=paper,colframe=goldleaf,boxrule=0.8pt,arc=3pt,halign=center,
+  title={#1},fonttitle=\itshape\color{inkgold},colbacktitle=paper,attach boxed title to top center={yshift=-2mm},
+  boxed title style={boxrule=0pt,colback=paper}}
+\newtcolorbox{demobox}[1][Demo]{colback=white,borderline west={1.5pt}{0pt}{inkred!70},
+  title={\itshape #1:},coltitle=inkred,colbacktitle=white,attach title to upper,after title={\par}}
+
+% table style helper
+\newcolumntype{C}{>{\centering\arraybackslash}p{1.6cm}}
+
+\tikzset{circ/.style={circle,draw=black!75,thick,minimum size=5mm,inner sep=0pt}}
+
+\setlist{itemsep=2pt,topsep=4pt}
+\interfootnotelinepenalty=10000
+\setlength{\parindent}{1.2em}
+\setlength{\parskip}{3pt plus 1pt}
+
+% wider numbers in the table of contents (Roman numerals like VIII)
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\l@chapter}{\setlength\@tempdima{1.5em}}{\setlength\@tempdima{2.6em}}{}{}
+\renewcommand*\l@section{\@dottedtocline{1}{2.6em}{3.4em}}
+\makeatother

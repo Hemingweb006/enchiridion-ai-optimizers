@@ -1,0 +1,147 @@
+% =====================================================================
+\chapter{RMSProp}
+\label{ch:rmsprop}
+% =====================================================================
+
+\tikzset{bwcontours/.pic={
+  \foreach \r in {0.5,1.05,1.65} \draw[very thick] (0.4,0) ellipse ({2.3*\r} and {\r});
+  \fill[inkred] (0.4,0) circle (2.5pt);
+  \draw[inkgreen,thick,-Stealth] (-3.2,-1.45) -- (-3.2,1.6) node[above,font=\small] {$b$};
+  \draw[inkgreen,thick,-Stealth] (-3.2,-1.45) -- (1.5,-1.45) node[right,font=\small] {$w$};}}
+
+\lettrine[lines=2,findent=2pt,nindent=0pt]{\color{inkred}A}{s} we have seen before with momentum, with the EMA we turned a noisy pattern into a smooth one. RMSProp relies on the same idea, but with only one important difference.\ednote{EMA (exponential moving average) and EWA (exponentially weighted average) are two names for the same thing; the notes use both.}
+
+The idea of RMSProp comes from this figure:
+\begin{center}
+\begin{tikzpicture}
+  \pic at (0,0) {bwcontours};
+  \draw[inkblue,thick,-Stealth] (-2.5,-0.2) -- (-2.2,1.0) -- (-1.8,-0.9) -- (-1.4,1.0) -- (-1.0,-0.85) -- (-0.6,0.9) -- (-0.25,-0.6) -- (0.05,0.55) -- (0.35,0.05);
+\end{tikzpicture}
+\end{center}
+
+So the remark here is that, at each step, the gradient is bigger towards $b$, and less important towards $w$. We actually want it to go in the direction of $w$! So to solve this, we introduce the RMSProp algorithm:
+
+\Def[Normalise each direction by its historical volatility.]{Def: RMSProp}
+
+RMSProp stands for \textbf{R}oot \textbf{M}ean \textbf{S}quare \textbf{Prop}agation, and this is the idea:
+
+\begin{center}
+\begin{tikzpicture}
+  \node (m) at (0,0) {\Large $v_t=\beta v_{t-1}+(1-\beta)\,\nabla f_t^{\,2}(x_t)$};
+  \node[inkgold,font=\small] (lm) at (-4.6,0) {Mean $\rightarrow$};
+  \node[inkgold,font=\small] (sq) at (2.3,1.0) {Square};
+  \draw[-Stealth,inkgold] (sq) -- (1.85,0.35);
+  \node[inkred,font=\small,align=left,anchor=west] at (3.4,0.2) {\warn\ Pointwise squaring!\\ \phantom{\warn\ }$\nabla f_t(x_t)\odot\nabla f_t(x_t)$};
+  \node (u) at (0,-1.8) {\Large $x_{t+1}=x_t-\gamma\,\dfrac{\nabla f_t(x_t)}{\sqrt{v_t}+\varepsilon}$};
+  \node[inkred,font=\small,align=center] (pr) at (-3.6,-3.2) {\warn\ ``Pointwise\\ root''};
+  \draw[-Stealth,inkred] (pr.east) -- (0.65,-2.35);
+  \node[inkgold,font=\small] (rt) at (2.9,-3.1) {Root};
+  \draw[-Stealth,inkgold] (rt.west) -- (0.9,-2.45);
+\end{tikzpicture}
+\end{center}
+
+\Q{Well, what does this mean, and how would that help us reduce the effect of large gradients towards $b$?}
+
+Let's see the details:
+\[
+v_t=\beta v_{t-1}+(1-\beta)\,\nabla f_t^{\,2}(x_t)
+\]
+\[
+\swarrow\hspace{4cm}\searrow
+\]
+\[
+v_{t,b}=\beta v_{t-1,b}+(1-\beta)\left(\frac{\partial f}{\partial b}\right)^2
+\qquad\Big|\qquad
+v_{t,w}=\beta v_{t-1,w}+(1-\beta)\left(\frac{\partial f}{\partial w}\right)^2
+\]
+
+\hl{If the step is bigger towards $b$:}
+\[
+\left(\frac{\partial f}{\partial b}\right)^2>\left(\frac{\partial f}{\partial w}\right)^2
+\implies v_{t,b}>v_{t,w}\implies\sqrt{v_{t,b}}>\sqrt{v_{t,w}}
+\]
+
+And to compute the step:
+\begin{center}
+\begin{tikzpicture}
+  \node at (0,0) {$\left\{\begin{aligned}
+    x_{t+1,b}&=x_{t,b}-\gamma\,\dfrac{\partial f/\partial b}{\sqrt{v_{t,b}}+\varepsilon}\\[4pt]
+    x_{t+1,w}&=x_{t,w}-\gamma\,\dfrac{\partial f/\partial w}{\sqrt{v_{t,w}}+\varepsilon}
+  \end{aligned}\right.$};
+  \node[inkgreen,font=\small\itshape,align=left,anchor=west] (a) at (3.2,0) {We divided by something\\ bigger than this one.};
+  \draw[-Stealth,inkgreen] (a.west) to[out=160,in=0] (2.3,0.55);
+  \draw[-Stealth,inkgreen] (a.west) to[out=200,in=0] (2.3,-0.6);
+\end{tikzpicture}
+\end{center}
+
+So if the gradient is big in a direction, we divide by a big quantity to reduce it, and that leads to this:
+
+\begin{center}
+\begin{tikzpicture}
+  \pic at (0,0) {bwcontours};
+  \draw[inkblue,thick] (-2.5,-0.2) -- (-2.2,1.0) -- (-1.8,-0.9) -- (-1.4,1.0) -- (-1.0,-0.85) -- (-0.6,0.9) -- (-0.25,-0.6) -- (0.05,0.55) -- (0.35,0.05);
+  \draw[inkpurple,very thick,-Stealth] (-2.5,-0.2) -- (-1.9,0.15) -- (-1.3,-0.1) -- (-0.7,0.1) -- (-0.1,-0.05) -- (0.3,0.0);
+  \node[inkgold,font=\small\itshape,anchor=west] at (4.6,0.4) {$\leftarrow$ Propagation};
+  \node[font=\small] at (0,-2.1) {{\color{inkblue}$\bm{\wr\wr}$} : SGD \qquad {\color{inkpurple}$\bm{\wr\wr}$} : RMSProp};
+\end{tikzpicture}
+\end{center}
+
+\Q{Another thing: what's ``$\varepsilon$''?}
+
+Epsilon plays a crucial role. It has two big roles:
+\begin{enumerate}[label=\arabic*/]
+  \item \textbf{Avoid dividing by zero!} (In practice we take $\varepsilon=10^{-8}$; PyTorch: $\varepsilon=10^{-8}$, TensorFlow: $\varepsilon=10^{-7}$.)
+  \item \textbf{Defining a minimum of division.} Imagine $\sqrt{v_{t}}\simeq10^{-20}$.
+  \begin{itemize}
+    \item Without $\varepsilon$: $\dfrac{\nabla f_t(x_t)}{10^{-20}}=\nabla f_t(x_t)\times10^{20}$ \quad ``\hlr{Explosion}''.
+    \item With $\varepsilon$: $\dfrac{\nabla f_t(x_t)}{\varepsilon+10^{-20}}\simeq\dfrac{\nabla f_t(x_t)}{\varepsilon}$ \quad (if $\varepsilon=10^{-8}$: $10^{-8}+10^{-20}\simeq10^{-8}$).
+  \end{itemize}
+\end{enumerate}
+Those are the main roles of $\varepsilon$.
+
+\Q{One last question: why do we divide by $\sqrt{v_t}$ and not $v_t$?}
+
+And the answer comes from maths. With $v_0=0$:\ednote{The notes write the sum up to $+\infty$ and then use the finite sum $\frac{1-\beta^t}{1-\beta}$. Starting from $v_0=0$, $v_t$ has exactly $t$ terms, from $k=0$ to $t-1$.}
+\begin{align*}
+v_t&=\beta v_{t-1}+(1-\beta)\,\nabla f_t^{\,2}(x_t)\\
+\implies v_t&=(1-\beta)\sum_{k=0}^{t-1}\beta^k\,\nabla f_{t-k}^{\,2}(x_{t-k})\\
+E(v_t)&=(1-\beta)\sum_{k=0}^{t-1}\beta^k\,E\bigl(\nabla f_{t-k}^{\,2}(x_{t-k})\bigr)
+\end{align*}
+Here comes the assumption of optimization in deep learning; we assume that:
+\[
+E\bigl(\nabla f_t^{\,2}(x_t)\bigr)\simeq E\bigl(\nabla f_{t-1}^{\,2}(x_{t-1})\bigr)\simeq E\bigl(\nabla f^{\,2}(x)\bigr)
+\]
+That leads to:
+\begin{align*}
+E(v_t)&\simeq(1-\beta)\times\frac{1-\beta^t}{1-\beta}\,E\bigl(\nabla f^{\,2}(x)\bigr)\\
+\beta<1&\implies\lim_{t\to+\infty}\beta^t=0\\
+&\boxed{E(v_t)\simeq E\bigl(\nabla f^{\,2}(x)\bigr)}
+\end{align*}
+
+And for the $w$ direction:
+\[
+E(v_{t,w})\simeq E\left(\left(\frac{\partial f}{\partial w}\right)^2\right)
+\qquad\implies\qquad
+[v_{t,w}]\simeq\frac{[f]^2}{[w]^2}
+\]
+(where $[\,\cdot\,]$ is the unit, the ``dimension'').
+
+So, let's say we don't compute the root:
+\begin{center}
+\begin{tikzpicture}
+  \node (e) at (0,0) {$[x_{t+1,w}]=[x_{t,w}]-\gamma\,\dfrac{\;\dfrac{[f]}{[w]}\;}{\dfrac{[f]^2}{[w]^2}+\varepsilon}$};
+  \node[inkpurple,font=\small\itshape,anchor=west] (d) at (3.4,0) {Dimension problem};
+  \draw[-Stealth,inkpurple] (d.west) to[out=160,in=0] (2.0,0.45);
+  \draw[-Stealth,inkpurple] (d.west) to[out=200,in=0] (2.3,-0.4);
+\end{tikzpicture}
+\end{center}
+But with the root, $[\sqrt{v_{t,w}}]=\dfrac{[f]}{[w]}$:
+\begin{center}
+\begin{tikzpicture}
+  \node (e) at (0,0) {$[x_{t+1,w}]=[x_{t,w}]-\gamma\,\dfrac{\;\dfrac{[f]}{[w]}\;}{\dfrac{[f]}{[w]}+\varepsilon}$};
+  \node[inkpurple,font=\small\itshape,anchor=west] (d) at (3.3,0) {Fixed!};
+  \draw[-Stealth,inkpurple] (d.west) to[out=160,in=0] (2.0,0.45);
+  \draw[-Stealth,inkpurple] (d.west) to[out=200,in=0] (2.2,-0.4);
+\end{tikzpicture}
+\end{center}
+The ratio has no unit anymore: the step only depends on $\gamma$, whatever the scale of $f$ or of $w$.\ednote{Sentence added to make the conclusion of the dimensional analysis explicit.}

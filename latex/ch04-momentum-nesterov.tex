@@ -1,0 +1,205 @@
+% =====================================================================
+\chapter{Momentum and Nesterov}
+\label{ch:momentum}
+% =====================================================================
+
+\input{gen/temp}
+\pgfplotsset{tempaxis/.style={width=10cm,height=5cm,axis lines=left,xmin=0,xmax=380,ymin=5,ymax=28,
+  xtick={0,170,365},ytick=\empty,xlabel={$t$ (days)},ylabel={$\theta$ ($^\circ$C)},
+  xlabel style={font=\small,at={(1,-0.12)},anchor=north east},ylabel style={font=\small},tick label style={font=\scriptsize}}}
+
+\section{Exponentially Weighted Average}
+
+\lettrine[lines=2,findent=2pt,nindent=0pt]{\color{inkred}L}{et's} say we want to represent the temperature in Casablanca for the whole year:
+
+\begin{center}
+\begin{tikzpicture}\begin{axis}[tempaxis]\tempnoisy\end{axis}\end{tikzpicture}
+\end{center}
+
+When we \hlg{interpolate (green curve)} the data points, we get a noisy pattern. But even with this noisy pattern, we can globally know the global pattern of the curve: it's increasing, reaching a maximum, then decreasing.
+
+So, to avoid noises and keep only the pattern, we should remark something:
+
+\Rem[Where do noises come from?] When we try to interpolate, we link data points, for example:
+\begin{center}
+\begin{tikzpicture}
+  \draw[inkgreen,thick] (0,0) -- (0.4,0.9) -- (0.8,0.35) -- (1.2,1.1) -- (1.5,0.2);
+  \foreach \p in {(0,0),(0.4,0.9),(0.8,0.35),(1.2,1.1),(1.5,0.2)} \fill \p circle (1.5pt);
+  \node[font=\small\itshape,anchor=west] (n) at (2.4,0.6) {This provokes noises: brutal deviations that come at once.};
+  \draw[-Stealth] (n.west) -- (1.25,1.0);
+\end{tikzpicture}
+\end{center}
+
+So, if we find a solution to avoid considering brutal data deviations, by giving much importance to the past evolution\ldots\ let me introduce you:
+
+\Def{Def: Exponentially Weighted Average}
+EWA is defined as an iterative weighted average:
+\begin{keyformula}
+\[
+v_t=\beta\,v_{t-1}+(1-\beta)\,\theta_t
+\]
+\end{keyformula}
+where $(v_t)$ is the representative sequence, and $\theta_t$ the function that we want to make smooth, while $\beta$ is a number $\in\,]0,1[$ that manages the degree of smoothness. But the main thing is that \textbf{$\beta$ controls how many steps we want to memorize from the past}, so as to avoid brutal deviation problems.
+
+\begin{center}
+\begin{tikzpicture}\begin{axis}[tempaxis]\tempnoisy\tempewc\end{axis}\end{tikzpicture}
+\end{center}
+The \hlr{red curve} represents the EWA effect for $\beta=0.9$.
+
+\Rem As a rule of thumb, very used in ML and DL:
+\[
+N=\frac{1}{1-\beta}\qquad\text{with $N$: the number of remembered steps.}
+\]
+For example, $\beta=0.9$: $N=\frac{1}{1-0.9}=10$ steps.
+
+And we can assume that:
+\[
+\boxed{\beta=1-\frac1N}\implies\text{if we want to remember $N$ steps, this is $\beta$.}
+\]
+For example, we want to remember 100 steps: $\beta=1-\frac{1}{100}=0.99$.
+
+\hl{But let us see something very interesting:}
+\begin{align*}
+v_{t-1}&=\beta v_{t-2}+(1-\beta)\theta_{t-1}\\
+v_t&=\beta v_{t-1}+(1-\beta)\theta_t\\
+v_{t+1}&=\beta v_t+(1-\beta)\theta_{t+1}\\
+\implies v_{t+1}&=(1-\beta)\theta_{t+1}\ \underset{\times\beta}{\longrightarrow}\ (1-\beta)\beta\,\theta_t\ \underset{\times\beta}{\longrightarrow}\ (1-\beta)\beta^2\,\theta_{t-1}+\cdots
+\end{align*}
+(the three terms are summed). So we multiply by $\beta$ at each iteration.
+
+\Q{But when is it forgotten?}
+\[
+\beta=1-\frac1N\implies\beta^N=\left(1-\frac1N\right)^N,\qquad
+\lim_{N\to+\infty}\beta^N=\lim_{N\to+\infty}\left(1-\frac1N\right)^N=\frac1e
+\]
+So if we choose $\beta$ depending on $N$, $\beta=1-\frac1N$, then the contribution after $N$ steps is $\frac1e\approx37\%$.
+
+\begin{goldbox}
+That's where the ``exponential'' comes from in EWA.
+\end{goldbox}
+
+\subsection*{\color{inkblue}Remark: Bias Correction}
+
+The red curve shown earlier isn't just an EWA, but an EWA \emph{with bias correction}:
+
+\begin{center}
+\begin{tikzpicture}\begin{axis}[tempaxis]\tempnoisy\tempew\tempewc\end{axis}\end{tikzpicture}
+\end{center}
+
+The \hl{blue curve} shows what happens when we don't do bias correction, and the reason is that, theoretically and also in practice, we initialize $v_0=0$. But the problem is:
+\[
+v_1=0+(1-\beta)\,\theta_1
+\]
+In our example, where $\theta_t$ is the temperature and $\beta=0.9$, let's say $\theta_1=11^\circ$C. Then $v_1=0.1\times11=1.1^\circ\text{C}\ll11^\circ$C, so we start far away from the starting point.
+
+To correct that, we change the EWA formula:
+\begin{keyformula}[This is Bias Correction]
+\[
+\hat v_t=\frac{v_t}{1-\beta^t}=\frac{\beta v_{t-1}+(1-\beta)\theta_t}{1-\beta^t}
+\]
+\end{keyformula}
+With $t=1$: $\hat v_1=\frac{1.1}{1-0.9}=11^\circ$C, exactly $\theta_1$. And since $\beta^t\to0$, the correction disappears by itself after a few steps.
+
+People don't mind fixing that in practice. Even libraries like PyTorch or TensorFlow don't add bias correction for momentum, since data scientists consider it as a ``warm-up''.\ednote{In fact PyTorch avoids the problem differently: the momentum buffer is initialised with the first gradient ($v_1=g_1$) instead of $0$.} But for optimizers that use multiple moving averages (like Adam), bias correction is \textbf{mandatory}.\ednote{The notes cite ``RMSProp/Adam''. Adam applies bias correction (it's in the algorithm, see Chapter~\ref{ch:adam}), but the classical RMSProp, and its PyTorch/TensorFlow implementations, do not.}
+
+\section{Momentum}
+
+\Def[Persist in directions that keep reinforcing themselves.]{Def: Momentum}
+
+As you may have remarked, the squiggly line represented before looks the same as the SGD noisy pattern. So we apply EWA on the $\nabla f_i(x_k)$ (in practice $\nabla f_T(x_k)$ for mini-batch GD).
+
+So the algorithm is as follows:
+\begin{keyformula}
+\[
+\left\{\begin{aligned}
+v_t&=\beta\,v_{t-1}+(1-\beta)\,\nabla f_t(x_t)\\
+x_{t+1}&=x_t-\gamma\,v_t
+\end{aligned}\right.
+\]
+\end{keyformula}
+
+\Rem Some AI engineers, and some frameworks like PyTorch, use this form of GD with momentum:
+\[
+\left\{\begin{aligned}
+v_t&=\beta\,v_{t-1}+\nabla f_t(x_t)\\
+x_{t+1}&=x_t-\gamma\,v_t
+\end{aligned}\right.
+\]
+And this is the reason why. Let's take our classical form, applied on GD ($g_t(x)=\nabla f_t(x)$):
+\begin{align*}
+v_t&=\beta v_{t-1}+(1-\beta)g_t(x)\\
+\text{with:}\quad v_{t-1}&=\beta v_{t-2}+(1-\beta)g_{t-1}(x)\\
+\text{so:}\quad v_t&=(1-\beta)\bigl(g_t(x)+\beta\,g_{t-1}(x)+\beta^2 g_{t-2}(x)+\cdots\bigr)
+\end{align*}
+So $g_t(x)=\nabla f_t(x)$ is scaled by:\ednote{The notes sum from $i=1$; the geometric sum $\sum\beta^i=\frac{1}{1-\beta}$ starts at $i=0$ (the current gradient has weight $\beta^0=1$). Same fix in the next formula.}
+\[
+(1-\beta)\sum_{i=0}^{+\infty}\beta^i=(1-\beta)\times\frac{1}{1-\beta}=1\qquad\text{(geometric series, converges because $\beta<1$)}
+\]
+\begin{itemize}
+  \item So the gradient is always (approximately) scaled by \underline{1}.
+\end{itemize}
+
+Let's take the other formula, $v_t=\beta v_{t-1}+g_t(x)$. That leads to $\nabla f(x)$ being scaled by:
+\[
+\sum_{i=0}^{+\infty}\beta^i=\frac{1}{1-\beta}
+\]
+This is huge! Imagine if $\beta=0.9$: $\frac{1}{1-0.9}=10$, so the gradient is scaled by $10\times$, much faster! (Of course, we need to tune the learning rate.)
+
+That's why engineers prefer this formula to the other one.
+
+\begin{notebox}[Important remark]
+As I said, in PyTorch we don't use the form with $1-\beta$, but that's the default case. The truth is that, for PyTorch, the formula is as follows:
+\[
+\left\{\begin{aligned}
+v_t&=\beta\,v_{t-1}+(1-d)\,\nabla f_t(x_t)\\
+x_{t+1}&=x_t-\gamma\,v_t
+\end{aligned}\right.
+\]
+with $d$ the ``\textbf{dampening}'' parameter; by default, $d=0$.
+\end{notebox}
+
+\Q{You said before that noises could be helpful; why use an algorithm that smoothens noises?}
+
+Well, good question! And the idea is, as I said, that the main consequence of noises is avoiding local minima and saddle point problems, by following another path rather than taking the straightforward one.
+
+Well, SGD with momentum does follow a different path from the straightforward one, but rather than losing time switching directions at each iteration, we follow a more stable, smooth line that follows the global evolution of SGD.
+
+\section{Nesterov}
+
+\Def[See before you leap.]{Def: Nesterov}
+
+Nesterov SGD is a smart idea found by Yurii Nesterov. The idea is: from the momentum formula,
+\[
+v_t=\beta v_{t-1}+\nabla f_t(x_t),\qquad\text{then:}\qquad x_{t+1}=x_t-\gamma v_t,
+\]
+let's see what happens:
+
+\begin{center}
+\begin{tikzpicture}
+  \foreach \r in {0.6,1.25} \draw[very thick] (0.3,0) ellipse ({2.6*\r} and {\r});
+  \draw[very thick] (0.3,0) ellipse (4.6 and 1.95);
+  \fill[inkred] (0.9,0) circle (2.5pt);
+  \coordinate (xt) at (-2.6,-0.2);
+  \coordinate (mid) at (-1.6,1.05);
+  \coordinate (xn) at (-0.65,0.55);
+  \draw[inkblue,very thick,-Stealth] (xt) -- (mid);
+  \draw[inkpurple,very thick,-Stealth] (mid) -- (xn);
+  \draw[inkgreen,very thick,-Stealth] (xt) -- (xn);
+  \node[inkblue,font=\small,anchor=east] at (xt) {$x_t$};
+  \node[inkblue,font=\small,anchor=south west] at (xn) {$x_{t+1}$};
+  \node[font=\small] at (0.3,-2.5) {{\color{inkgreen}$\bm{\wr\wr}$} $v_t$ \qquad {\color{inkblue}$\bm{\wr\wr}$} $\gamma\beta v_{t-1}$ \qquad {\color{inkpurple}$\bm{\wr\wr}$} $\gamma\nabla f_t(x_t)$};
+\end{tikzpicture}
+\end{center}
+
+So, what we can conclude from the figure is that $\beta v_{t-1}$ already gives us an idea of the region where we would ``leap''. So why not take it into consideration, and adjust the gradient at that point?
+
+So here comes the Nesterov solution:
+\begin{keyformula}
+\[
+\begin{aligned}
+\bar x_t&=x_t-\gamma\beta\,v_{t-1}&&\text{\color{inkgold}``See''}\\
+v_t&=\beta v_{t-1}+\nabla f_t(\bar x_t)&&\text{\color{inkgold}``Before''}\\
+x_{t+1}&=x_t-\gamma\,v_t&&\text{\color{inkgold}``You leap''}
+\end{aligned}
+\]
+\end{keyformula}

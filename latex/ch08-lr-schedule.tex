@@ -1,0 +1,228 @@
+% =====================================================================
+\chapter{Learning Rate Schedule}
+\label{ch:lr}
+% =====================================================================
+
+\pgfplotsset{lraxis/.style={width=8.5cm,height=4.6cm,axis lines=left,xmin=0,xmax=105,ymin=0,
+  xlabel={epoch $t$},ylabel={$\eta_t$},xlabel style={font=\small,at={(1,-0.14)},anchor=north east},ylabel style={font=\small},
+  tick label style={font=\scriptsize},scaled y ticks=false,yticklabel style={/pgf/number format/fixed}}}
+
+\lettrine[lines=2,findent=2pt,nindent=0pt]{\color{inkred}C}{onsider} this part as the conclusion of this book.\ednote{The notes say ``the conclusion of the first chapter'': in the author's notebook, optimizers are the first chapter of a longer course.} I assume that you have been asking yourself, while learning about optimizers:
+
+\Q{\large How to choose $\alpha$, the learning rate?!}
+
+To choose $\alpha$ isn't easy, and the answer is that there isn't one $\alpha$.
+
+\Def{Def 1: Constant learning rate}
+The constant learning rate is to choose $\alpha=$ constant for the whole training (let's say $\alpha=0.1$). Let's look closely at what happens:
+
+\begin{center}
+\begin{tikzpicture}
+  \foreach \r in {0.4,1.0,1.7} \draw[very thick] (0.5,0) ellipse ({2.2*\r} and {\r});
+  \fill[inkred] (0.5,0) circle (2.2pt);
+  \draw[inkblue,thick] (-3.3,-0.9) -- (-2.9,1.1) -- (-2.5,-1.0) -- (-2.0,1.0) -- (-1.6,-0.8) -- (-1.1,0.8) -- (-0.7,-0.6) -- (-0.2,0.55) -- (0.2,-0.35) -- (0.8,0.35) -- (0.3,0.3) -- (0.9,-0.3) -- (0.15,-0.15) -- (0.75,0.2) -- (0.2,0.1);
+  \node[inkgreen,font=\small\itshape,align=left,anchor=west] (n) at (4.6,0.9) {Never reached the minimum:\\ the gradient overshoots\\ the minimum.};
+  \draw[-Stealth,inkgreen] (n.west) to[out=190,in=40] (0.95,0.35);
+\end{tikzpicture}
+\end{center}
+
+The idea is: $\alpha$ may be suitable at first, but near the minimum it overshoots, since the steps are too big.
+
+As an analogy, imagine you want to go to a store. At first, from your starting point, you drive fast ($80$\,km/h); then, when you enter the street where the store is located, you brake to reduce the speed ($\sim20$\,km/h); when you search where the store is, you go very slow ($\sim7$--$5$\,km/h); then when you find it, you stop.
+
+\begin{goldbox}
+We need to create this braking system, not look for a store in a street at 80\,km/h (constant learning rate).
+\end{goldbox}
+
+\Def{Def 2: Constant learning rate decay (step decay)}
+The idea is to reduce the learning rate constantly:
+\begin{center}
+\begin{tikzpicture}
+  \node (eq) at (0,0) {\Large $\eta_t=\eta_0\,\gamma^{\lfloor t/s\rfloor}$};
+  \node[inkgreen,font=\scriptsize\itshape,align=center] (lr) at (-3.1,-0.4) {Learning\\ rate};
+  \draw[-Stealth,inkgreen] (lr.east) -- (-1.05,-0.1);
+  \node[inkgreen,font=\scriptsize\itshape,align=center] (st) at (-0.6,-1.3) {Starting\\ L.r};
+  \draw[-Stealth,inkgreen] (st.north) -- (-0.35,-0.3);
+  \node[inkgreen,font=\scriptsize\itshape,align=center] (rf) at (0.9,-1.35) {Reduce\\ factor};
+  \draw[-Stealth,inkgreen] (rf.north) -- (0.3,-0.25);
+  \node[inkblue,font=\scriptsize\itshape,align=left,anchor=west] (fl) at (2.2,0.7) {$\operatorname{floor}\!\left(\frac{t}{s}\right)$; $t$: actual epoch};
+  \draw[-Stealth,inkblue] (fl.west) -- (1.2,0.35);
+  \node[inkblue,font=\scriptsize\itshape,align=left,anchor=west] (s) at (2.2,-0.6) {$s$: every how many epochs\\ we want to apply the reduction};
+  \draw[-Stealth,inkblue] (s.west) -- (1.45,0.15);
+\end{tikzpicture}
+\end{center}
+
+For example, the sentence: ``I want to reduce the learning rate $0.01$ by a factor of $10^{-1}$ every 20 epochs'' translates to:
+\[
+\boxed{\eta_t=0.01\times0.1^{\lfloor t/20\rfloor}}
+\]
+
+\Rem[Rule of thumb] Reduce the learning rate at 30\%, 60\% and 90\% of the training.
+For example, if the max epoch is 100: $s=30$.
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[lraxis,ymax=0.011,ytick={0.01,0.001},yticklabels={$10^{-2}$,$10^{-3}$}]
+\addplot[inkpurple,very thick,const plot] coordinates {(0,0.01)(30,0.001)(60,0.0001)(90,0.00001)(100,0.00001)};
+\foreach \e in {30,60,90} {\edef\t{\noexpand\draw[inkgray,dashed] (axis cs:\e,0) -- (axis cs:\e,0.011);}\t}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\Def{Def 3: Exponential decay}
+Exponential decay is like a smoother decay than the previous one:
+\[
+\eta_t=\eta_0\,e^{-kt}\qquad\longleftarrow\ \text{\color{inkred}$k$: a factor that needs to be defined}
+\]
+To define $k$, there isn't a rule of thumb, but a more precise one:
+\begin{center}
+\begin{tikzpicture}
+  \node (eq) at (0,0) {\Large $k=-\dfrac{\ln(\lambda)}{s}$};
+  \node[inkgreen,font=\scriptsize\itshape,anchor=west] (a) at (2.0,0.45) {$\lambda$: by how much we want to reduce the L.r};
+  \draw[-Stealth,inkgreen] (a.west) -- (1.15,0.35);
+  \node[inkgreen,font=\scriptsize\itshape,anchor=west] (b) at (2.0,-0.45) {$s$: after how many epochs};
+  \draw[-Stealth,inkgreen] (b.west) -- (0.85,-0.4);
+\end{tikzpicture}
+\end{center}
+Let's say we want to divide the l.r each time by 2 after 20 epochs:
+\[
+k=-\frac{\ln(1/2)}{20}=\frac{\ln(2)}{20}\simeq0.035
+\qquad\text{\ednotemark}\]
+\ednotetext{Check: $e^{-0.035\times20}=e^{-0.69}\simeq0.5$, the l.r is divided by 2 every 20 epochs, as wanted.}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[lraxis,ymax=0.011,ytick={0.01,0.005},yticklabels={$\eta_0$,$\eta_0/2$}]
+\addplot[inkpurple,very thick,domain=0:100,samples=100] {0.01*exp(-0.035*x)};
+\addplot[inkgray,dashed,const plot] coordinates {(0,0.01)(20,0.005)(40,0.0025)(60,0.00125)(80,0.000625)(100,0.000625)};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\Def{Def 4: Cosine Annealing}
+The most used one. It follows the analogy perfectly: at first, nearly no braking, and at the end the braking. We follow the curve of:
+\[
+\frac{1+\cos(x)}{2}
+\]
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=10cm,height=5cm,axis lines=middle,xmin=-0.6,xmax=5.7,ymin=-0.3,ymax=1.5,
+  xtick={0,1,2,3,4,5},ytick={0.5,1},tick label style={font=\scriptsize},grid=both,grid style={gray!15}]
+\addplot[teal!70!black,thick,domain=-0.6:5.7,samples=150] {(1+cos(deg(x)))/2};
+\draw[inkred,line width=2pt] (axis cs:0,-0.2) -- (axis cs:0,1.3);
+\draw[inkred,line width=2pt] (axis cs:3.1416,-0.2) -- (axis cs:3.1416,1.3);
+\node[inkred,font=\small\itshape] at (axis cs:1.57,1.38) {Region of interest};
+\draw[inkblue,line width=2pt] (axis cs:0,1) -- (axis cs:0.45,0.97);
+\draw[inkblue,line width=2pt] (axis cs:1.2,0.68) -- (axis cs:1.95,0.31);
+\draw[inkblue,line width=2pt] (axis cs:2.55,0.08) -- (axis cs:3.14,0.0);
+\node[inkblue,circle,draw,inner sep=1pt,font=\scriptsize] at (axis cs:0.3,1.16) {1};
+\node[inkblue,circle,draw,inner sep=1pt,font=\scriptsize] at (axis cs:1.75,0.72) {2};
+\node[inkblue,circle,draw,inner sep=1pt,font=\scriptsize] at (axis cs:2.55,0.33) {3};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+  \item Zone \ding{172}: nearly a horizontal line (no movement).
+  \item Zone \ding{173}: linear straight line, not that harsh slope.
+  \item Zone \ding{174}: a harsher, rude slope at the end.
+\end{itemize}
+
+\hlp{Project the tangent state on the brake state:}
+\begin{itemize}
+  \item \hl{Zone \ding{172}: nearly no braking.}
+  \item \hl{Zone \ding{173}: braking, but not too much.}
+  \item \hl{Zone \ding{174}: rude brake.}
+\end{itemize}
+
+By changing the amplitude and the ending point:
+\begin{keyformula}
+\[
+\eta_t=\eta_{\min}+\bigl(\eta_{\max}-\eta_{\min}\bigr)\,\frac{1+\cos\!\left(\frac{t\pi}{T}\right)}{2}
+\]
+\end{keyformula}
+\begin{itemize}
+  \item $T$: number of epochs;
+  \item $t$: current epoch;
+  \item $\eta_{\max}$: equivalent to $\eta_0$, ``starting L.r'';
+  \item $\eta_{\min}$: desired ending ``L.r''. Sometimes chosen as 0, or $10^{-7}\sim10^{-8}$: something too small.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[lraxis,ymax=0.011,ytick={0.01},yticklabels={$\eta_{\max}$}]
+\addplot[inkpurple,very thick,domain=0:100,samples=120] {0.0000001+(0.01-0.0000001)*(1+cos(deg(x*pi/100)))/2};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+% ---------------------------------------------------------------------
+\clearpage
+\Def{Def 5: Warm Up}
+
+\begin{tcolorbox}[colback=inkpurple!4,borderline west={3pt}{0pt}{inkpurple},title={\itshape\color{inkpurple}The notes stop at the title ``Def 5: Warm Up''.},colbacktitle=inkpurple!4,coltitle=inkpurple,attach title to upper,after title={\ }]
+What follows was written during the typesetting, in the spirit of the notes, to complete the chapter.
+\end{tcolorbox}
+
+Let's go back to our car. Every schedule we have seen starts at full speed: $\eta_0$ from the first epoch. But think about when you start your car in the morning: you don't leave the parking at 80\,km/h. You don't know the road yet, the engine is cold, so you start slowly, and you accelerate only when everything is under control.
+
+\Q{Why would the first steps be dangerous for an optimizer?}
+
+Remember what we said in the previous chapters:
+\begin{itemize}
+  \item At the beginning, the weights are \textbf{random}: the model is completely wrong, the loss is big, and the gradients are big and chaotic. A big learning rate multiplied by a big gradient $\implies$ a huge step, and the training can \hlr{explode} from the very first epochs.
+  \item Adam divides by $\sqrt{\hat s_t}$, and at the beginning, $\hat s_t$ is estimated with only a few gradients (remember: with $\beta_2=0.999$, $s_t$ needs $\sim1000$ steps to warm up). Bias correction fixes the \emph{mean} of $s_t$, but not its \emph{variance}: with 2 or 3 gradients, $\hat s_t$ is a very bad estimation, and $\frac{\alpha}{\sqrt{\hat s_t}}$ can be anything. That's also why, in Chapter~\ref{ch:momentum}, we said that data scientists consider the bias of the moving averages as ``a warm up''.
+\end{itemize}
+
+\begin{goldbox}
+Warm up: start with a small learning rate, and increase it progressively\\ until reaching $\eta_{\max}$. Then, apply the decay.
+\end{goldbox}
+
+The most used one is the \textbf{linear warm up}: during the first $T_w$ steps (the ``warm up steps''), we increase the learning rate linearly:
+\begin{keyformula}
+\[
+\eta_t=\eta_{\max}\times\frac{t}{T_w}\qquad\text{for }t\le T_w
+\]
+\end{keyformula}
+Then, after the warm up, we use one of the previous schedules, in practice the cosine annealing, on the remaining $T-T_w$ steps:
+\begin{keyformula}[Warm up + Cosine Annealing]
+\[
+\eta_t=\begin{cases}
+\eta_{\max}\,\dfrac{t}{T_w} & t\le T_w\\[10pt]
+\eta_{\min}+\tfrac12\bigl(\eta_{\max}-\eta_{\min}\bigr)\Bigl(1+\cos\bigl(\pi\,\tfrac{t-T_w}{T-T_w}\bigr)\Bigr) & T_w<t\le T
+\end{cases}
+\]
+\end{keyformula}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[lraxis,ymax=0.0011,ytick={0.001},yticklabels={$\eta_{\max}$},xtick={0,5,100},xticklabels={0,$T_w$,$T$}]
+\addplot[inkpurple,very thick,domain=0:5,samples=10] {0.001*x/5};
+\addplot[inkpurple,very thick,domain=5:100,samples=120] {0.001*(1+cos(deg(pi*(x-5)/95)))/2};
+\draw[inkgray,dashed] (axis cs:5,0) -- (axis cs:5,0.0011);
+\node[inkgreen,font=\scriptsize\itshape,anchor=west] at (axis cs:6,0.00103) {leave the parking slowly};
+\node[inkgreen,font=\scriptsize\itshape,anchor=west] at (axis cs:55,0.0006) {drive, then brake};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\noindent\textbf{For example:} $T=100$ epochs, $T_w=5$ epochs, $\eta_{\max}=10^{-3}$:
+\[
+\eta_1=10^{-3}\times\frac15=2\times10^{-4},\quad
+\eta_2=4\times10^{-4},\quad\dots,\quad
+\eta_5=10^{-3},
+\]
+then the cosine brakes until $\eta_{100}=\eta_{\min}$.
+
+\Rem[Rule of thumb] The warm up takes a small part of the training, around 1\% to 10\% of the total steps. In practice, the warm up is counted in \emph{steps} (mini-batches), not epochs: for big models, a few hundred to a few thousand steps.
+
+\Rem Warm up was made famous by the Transformer paper (Vaswani et al., 2017, ``Attention Is All You Need''), which used a linear warm up followed by a decay in $\frac{1}{\sqrt t}$. The RAdam paper (Liu et al., 2019) later explained it mathematically: it is exactly the variance of Adam's adaptive learning rate, during the first steps, that makes the warm up necessary.
+
+\begin{goldbox}
+AdamW + Warm up + Cosine annealing:\\ this is the recipe used to train most of the modern large neural networks (LLMs).
+\end{goldbox}
+
+\Q{So how do we choose $\alpha$, finally?}
+
+We don't choose one $\alpha$, we choose a \emph{trajectory} for $\alpha$: small at the start (warm up), big when the road is clear, and smaller and smaller when we get near the minimum (decay). Exactly like driving to the store.

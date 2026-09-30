@@ -1,0 +1,7 @@
+*.aux
+*.log
+*.out
+*.toc
+latex/main.pdf
+latex/gen/*.pkl
+latex/gen/*.npy

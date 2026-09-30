@@ -1,0 +1,189 @@
+% =====================================================================
+\chapter{Other Adam Versions and Improvements}
+\label{ch:otheradam}
+% =====================================================================
+
+\Q{\large You may ask: why are you still talking about optimizers? Aren't Adam and AdamW the best?}
+
+\noindent Well, even if they are the most used optimizers, they still have some major problems.
+
+\section{AdaMax}
+
+\Prob[The Problem]
+\lettrine[lines=2,findent=2pt,nindent=0pt]{\color{inkred}A}{daMax} is a generalization of Adam, introduced in the same paper that talked about Adam. It solves a problem encountered by Adam. Let's look closely:
+
+\begin{center}
+\begin{tikzpicture}
+  \node (e) at (0,0) {\Large $s_t=\beta_2 s_{t-1}+(1-\beta_2)\,g_t^2$};
+  \node[inkgreen,font=\small,align=center] (pw) at (3.8,0.9) {Pointwise squaring\\ $g_t^2=g_t\odot g_t$};
+  \draw[-Stealth,inkgreen] (pw.west) -- (2.35,0.3);
+\end{tikzpicture}
+\end{center}
+Let's say:
+\[
+g_t=\begin{pmatrix}1000\\ 1\end{pmatrix}\implies g_t^2=\begin{pmatrix}10^6\\ 1\end{pmatrix}\quad\text{\color{inkgreen}(very big gradient)}
+\]
+For Adam, we use $\beta_2=0.999$; by the rule of thumb introduced before in Momentum:
+\[
+N=\frac{1}{1-\beta_2}\quad\text{\color{inkblue}(number of remembered steps!)}\qquad
+N=\frac{1}{1-0.999}=1000\ \text{remembered steps.}
+\]
+
+\Q{What does all of that mean?}
+
+It means that large old gradients take time to vanish, and affect $s_t$ for a long time.
+
+\Prob[Solution]
+The Adam researchers introduced a generalization of the second moment at the end of the paper. They said:
+\[
+v_t=\beta_2^p\,v_{t-1}+(1-\beta_2^p)\,|g_t|^p
+\]
+There comes the idea of AdaMax. Let's compute (writing $u_t=\lim_{p\to\infty}v_t^{1/p}$):\ednote{The notes write the limit in a compact way ($\lim\lVert v_t\rVert_p=\lVert v_t\rVert_\infty$). Two details were made explicit: the factor $(1-\beta_2^p)^{1/p}$ tends to 1 when $p\to\infty$ (so it disappears), and the $p$-norm is the norm of the pair $\bigl(|g_t|,\,\beta_2u_{t-1}\bigr)$, whose infinite norm is their maximum.}
+\begin{align*}
+\lim_{p\to+\infty}v_t^{1/p}&=\lim_{p\to+\infty}\Bigl((1-\beta_2^p)|g_t|^p+\beta_2^p v_{t-1}\Bigr)^{1/p}\\
+&=\lim_{p\to+\infty}\Bigl(|g_t|^p+\bigl(\beta_2\,u_{t-1}\bigr)^p\Bigr)^{1/p}\\
+&=\lim_{p\to+\infty}\bigl\lVert\bigl(|g_t|,\ \beta_2u_{t-1}\bigr)\bigr\rVert_p\\
+&=\bigl\lVert\bigl(|g_t|,\ \beta_2u_{t-1}\bigr)\bigr\rVert_\infty\quad\longleftarrow\ \text{\color{inkred}the infinite norm}
+\end{align*}
+\[
+\boxed{u_t=\max\bigl(|g_t|,\ \beta_2\,u_{t-1}\bigr)}
+\]
+
+\Q{Why does this solve the problem?}
+
+Let's see closely. Let's say we had a big gradient, and let's compare the accumulated gradient to the new one ($\beta_2=0.999$):
+\begin{align*}
+&\left\{\begin{aligned}g_{t-1,w}&=100\\ g_{t,w}&=20\end{aligned}\right.
+&&u_t=\max\bigl(\beta_2 u_{t-1},\,g_{t,w}\bigr)=\beta_2\times100=99.9\\
+&\left\{\begin{aligned}u_t&=99.9\\ g_{t+1,w}&=90\end{aligned}\right.
+&&u_{t+1}=\max(0.999\times99.9,\ 90)=99.8\\
+&\qquad\vdots\\
+&\left\{\begin{aligned}u_{N-1}&\simeq90.05\\ g_{N,w}&=90\end{aligned}\right.
+&&u_N=\max(0.999\times90.05,\ 90)=90\\ &&&\hspace{2.2cm}\text{\color{inkgreen}$\uparrow$ old gradient completely vanished}\text{\ednotemark}
+\end{align*}
+\ednotetext{The notes end the example with $u_N=72.9$ while the new gradient is $90$. That can't happen: by construction $u_t=\max(\dots,|g_t|)\ge|g_t|$, so $u_t$ never goes below the current gradient. Once the old maximum has decayed below 90 (after about $\ln(0.9)/\ln(0.999)\approx105$ steps), $u_t$ simply becomes the current gradient, 90. The first steps were also recomputed: with $g_{t+1}=90$, $u_{t+1}=\max(99.8,90)=99.8$. Compare with Adam: the $1000^2=10^6$ of the previous example never appears here, since AdaMax doesn't square the gradients.}
+
+And for the algorithm:
+\begin{keyformula}
+\[
+\begin{aligned}
+&\text{\ding{172}}\quad\left\{\begin{aligned}m_t&=\beta_1 m_{t-1}+(1-\beta_1)\,g_t\\ u_t&=\max\bigl(\beta_2\,u_{t-1},\ |g_t|\bigr)\end{aligned}\right.\\[4pt]
+&\text{\ding{173}}\quad\hat m_t=\frac{m_t}{1-\beta_1^t}\qquad\text{\color{inkred}(we don't need it for the second moment)}\\[4pt]
+&\text{\ding{174}}\quad x_{t+1}=x_t-\alpha\,\frac{\hat m_t}{u_t}
+\end{aligned}
+\qquad\text{\ednotemark}\]
+\end{keyformula}
+\ednotetext{The notes write $u_t=\max\bigl(\beta_2|g_t|,\,u_{t-1}\bigr)$: the factor $\beta_2$ is on the wrong term. It is the \emph{old} value that decays, $\max(\beta_2u_{t-1},|g_t|)$, as derived just above.}
+
+As we can see, there's no need for ``$\varepsilon$'', since we are adding $|g_t|$ $\implies u_t\neq0$ (as long as the gradients are not all exactly 0). We don't need to compute the root either, for the same reason.
+
+\hl{Even if this solution looks perfect, there's a problem:} a maximum could be persistent for a long time. That could be bad, but sometimes it could be good, as we are going to see now.
+
+\section{AMSGrad}
+
+\Prob
+The idea of AMSGrad is as follows. We divide by $\sqrt{s_t}$ for Adam; we add $\varepsilon$ to avoid dividing by 0. We usually choose $\varepsilon=10^{-8}$, but if $s_t=10^{-12}\implies\sqrt{s_t}=10^{-6}$, and $10^{-6}+10^{-8}\simeq10^{-6}$. So:
+\[
+x_{t+1}=x_t-\alpha\,\frac{\hat v_t}{10^{-6}}\implies x_{t+1}=x_t-\alpha\times\underbrace{10^{6}}_{\text{\color{inkred}``Explosion''}}\hat v_t
+\]
+The learning rate is used as a brake, to not overshoot the minimum. But now it's multiplied by $10^6$, which is big!
+
+\Prob[Solution]
+Define a minimum of division, by defining:\ednote{The notes write $\hat v_t=\max(v_t;\hat v_{t-1})$. In this book $v_t$ is the first moment and $s_t$ the second moment (Chapter~\ref{ch:adam}); the maximum is applied to the second moment, so it was written with $s$. In the AMSGrad paper the maximum is taken on $s_t$ (without bias correction).}
+\begin{keyformula}
+\[
+\hat s_t=\max\bigl(s_t,\ \hat s_{t-1}\bigr)
+\]
+\end{keyformula}
+and then $x_{t+1}=x_t-\alpha\,\dfrac{\hat v_t}{\sqrt{\hat s_t}+\varepsilon}$: the denominator can never decrease, so the effective step $\alpha/\sqrt{\hat s_t}$ can never increase.
+
+\Rem Remark that the researchers who made AMSGrad wanted to prove that Adam wasn't converging, even for simple convex function cases; that's why they introduced AMSGrad.
+
+\section{QHAdam}
+
+\Prob
+Adam has a problem of adaptation to quick changes, since it relies on the EMA:
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=7.5cm,height=4.4cm,axis lines=left,xtick=\empty,ytick=\empty,xmin=0,xmax=100,ymin=0,ymax=1.15]
+\addplot[inkblue,thin,samples=240,domain=2:88] {(x<=55 ? 0.15+0.85*sin(deg(x/55*pi/2))^1.2 : max(0.05,1-(x-55)/28)) + 0.08*sin(deg(x*9)) + 0.05*sin(deg(x*23))};
+\addplot[inkred,very thick,samples=120,domain=2:88] {(x<=62 ? 0.12+0.85*sin(deg(min(x,62)/62*pi/2))^1.6 : 0.97-0.018*(x-62)^1.25)};
+\end{axis}
+\node[font=\small,anchor=west] at (6.4,2.3) {{\color{inkred}$\bm{\wr\wr}$} : EMA};
+\node[font=\small,anchor=west] at (6.4,1.7) {{\color{inkblue}$\bm{\wr\wr}$} : Noisy pattern};
+\end{tikzpicture}
+\end{center}
+
+So, by construction, ``EMA-based algorithms'' tend to slowly adapt to quick changes. There comes QHAdam.
+
+\Prob[The solution]
+QHAdam stands for ``\textbf{Q}uasi-\textbf{H}yperbolic \textbf{Adam}''. And the meaning of ``hyperbolic'' comes from economics, especially the ``\emph{hyperbolic discounting}'' concept,\ednote{The notes write ``Hyperparabolical discounting''; the concept is \emph{hyperbolic} discounting. The notes illustrate it with an image from an article; it was redrawn here.} which is to prioritize near and present events over future ones. This illustrates the idea perfectly:
+
+\begin{center}
+\begin{tikzpicture}[box/.style={draw=inkgold,thick,fill=goldpale!40,rounded corners=2pt,align=center,font=\scriptsize,text width=2.5cm,minimum height=1.3cm}]
+  \node[font=\small\bfseries] at (5.7,1.45) {Would you like to receive\ldots};
+  \node[box] (a) at (0,0) {\tikz{\draw[fill=inkgold!55] (0,0) rectangle (0.5,0.3);}\\ small box of chocolates\\ \textbf{now}};
+  \node[font=\small] at (1.8,0) {or};
+  \node[box] (b) at (3.6,0) {\tikz{\draw[fill=inkgold!55] (0,0) rectangle (1.0,0.45);}\\ large box\\ after \textbf{1 week}};
+  \node[inkred,font=\small\itshape,align=center] at (1.8,-1.35) {Most people choose\\ the small box now};
+  \draw[inkred,very thick,rounded corners=3pt] ($(a.south west)+(-0.08,-0.08)$) rectangle ($(a.north east)+(0.08,0.08)$);
+  \begin{scope}[xshift=7.8cm]
+    \node[box] (c) at (0,0) {\tikz{\draw[fill=inkgold!55] (0,0) rectangle (0.5,0.3);}\\ small box\\ after \textbf{1 year}};
+    \node[font=\small] at (1.8,0) {or};
+    \node[box] (d) at (3.6,0) {\tikz{\draw[fill=inkgold!55] (0,0) rectangle (1.0,0.45);}\\ large box after\\ \textbf{1 year and 1 week}};
+    \node[inkgreen,font=\small\itshape,align=center] at (1.8,-1.35) {\ldots but here, most people\\ wait one more week};
+    \draw[inkgreen,very thick,rounded corners=3pt] ($(d.south west)+(-0.08,-0.08)$) rectangle ($(d.north east)+(0.08,0.08)$);
+  \end{scope}
+\end{tikzpicture}
+\end{center}
+
+So if we apply the idea to optimizers, it would be the exact solution: prioritize the present event. But if the present events are only noises, we should avoid that, by introducing a control variable ``$\nu$''. That's why it's ``\emph{Quasi}-Hyperbolic''.
+
+So the algorithm is as follows:
+\begin{keyformula}
+\[
+\begin{aligned}
+&\text{\ding{172}}\quad\left\{\begin{aligned}v_t&=\beta_1 v_{t-1}+(1-\beta_1)\,g_t\\ s_t&=\beta_2 s_{t-1}+(1-\beta_2)\,g_t^2\end{aligned}\right.
+\qquad
+\text{\ding{173}}\quad\left\{\begin{aligned}\hat v_t&=\frac{v_t}{1-\beta_1^t}\\ \hat s_t&=\frac{s_t}{1-\beta_2^t}\end{aligned}\right.\\[6pt]
+&\text{\ding{174}}\quad\left\{\begin{aligned}\tilde v_t&=(1-\nu)\,g_t+\nu\,\hat v_t\\ \tilde s_t&=(1-\nu)\,g_t^2+\nu\,\hat s_t\end{aligned}\right.
+\qquad
+\text{\ding{175}}\quad x_{t+1}=x_t-\alpha\,\frac{\tilde v_t}{\sqrt{\tilde s_t}+\varepsilon}
+\end{aligned}
+\qquad\text{\ednotemark}\]
+\end{keyformula}
+\ednotetext{The notes write $\tilde s_t=(1-\nu)g_t^2+\nu v_t^2$; the second line mixes the \emph{second} moment, so it is $\nu\,\hat s_t$. In the QHAdam paper (Ma \& Yarats, 2019) the two lines have their own control variables, $\nu_1$ and $\nu_2$ (recommended: $\nu_1=0.7$, $\nu_2=1$, with $\beta_1=0.999$). With $\nu=1$ we get back Adam; with $\nu=0$, only the present gradient counts.}
+
+\section{Yogi}
+
+\Prob
+The final one of our series of optimizers. It solves an important Adam problem. Let's see something:
+\begin{align*}
+s_t&=\beta_2 s_{t-1}+(1-\beta_2)\,g_t^2\\
+\iff s_t-s_{t-1}&=\beta_2 s_{t-1}-s_{t-1}+(1-\beta_2)\,g_t^2\\
+\Delta s_t&=-(1-\beta_2)\,s_{t-1}+(1-\beta_2)\,g_t^2\\
+\Delta s_t&=(1-\beta_2)\bigl(g_t^2-s_{t-1}\bigr)\text{\ednotemark}
+\end{align*}
+\ednotetext{The notes use $v_t$ for Adam's second moment in this section; it was written $s_t$, as in Chapter~\ref{ch:adam}.}
+
+This is an actual problem, especially when $s_{t-1}$ is too large and $g_t^2$ is drastically too small. Then $g_t^2-s_{t-1}\simeq-s_{t-1}$. For example, $s_{t-1,w}=10^4$ and $g_{t,w}=1$, so $g_{t,w}^2-s_{t-1,w}=-9999$.
+
+The change of $s_t$ then depends on $s_{t-1}$ itself, and not on the new gradients: $\Delta s_t\simeq-(1-\beta_2)\,s_{t-1}$, so $s_t$ \emph{melts} exponentially. Don't forget that we divide by $\sqrt{s_t}$ in Adam, so the effective learning rate $\alpha/\sqrt{s_t}$ grows very quickly, and the steps can become dramatically big (and Adam can fail to converge).\ednote{The notes conclude the opposite: that the step ``becomes dramatically slow (since we divide the learning rate by a big number)''. With $s_{t-1}\gg g_t^2$, Adam's $s_t$ \emph{decreases} geometrically (it loses a fixed fraction $1-\beta_2$ of itself at each step), so the division becomes weaker and weaker, and the effective step \emph{increases}, sometimes too fast. This is the problem described in the Yogi paper (Zaheer et al., 2018), and it is what Yogi's fix controls: its change is at most $(1-\beta_2)g_t^2$, so $s_t$ decreases slowly when the gradients are small.}
+
+\Prob[Solution]
+Yogi (which stands for ``to add'' in the Sanskrit language) is the solution. Yogi simply says: ``We don't care about $|g_t^2-s_{t-1}|$, but only about its sign; the only important thing is $g_t^2$'':
+\begin{align*}
+\Delta s_t&=(1-\beta_2)\,\operatorname{sign}\bigl(g_t^2-s_{t-1}\bigr)\,g_t^2\\
+\iff s_t-s_{t-1}&=(1-\beta_2)\,\operatorname{sign}\bigl(g_t^2-s_{t-1}\bigr)\,g_t^2
+\end{align*}
+\begin{keyformula}
+\[
+\iff s_t=s_{t-1}+(1-\beta_2)\,\operatorname{sign}\bigl(g_t^2-s_{t-1}\bigr)\,g_t^2
+\qquad\text{\ednotemark}\]
+\end{keyformula}
+\ednotetext{The notes write $\operatorname{sign}(g_t^2-v_t)$; the sign compares the new squared gradient with the \emph{previous} value, $s_{t-1}$ (the new one, $s_t$, is what we are computing).}
+
+With our example: $s_t=10^4+(1-\beta_2)\times(-1)\times1$: $s_t$ moves by $0.001$ instead of $\simeq10$ for Adam.
+
+And the other steps are like Adam (bias correction, compute the root, divide\ldots).

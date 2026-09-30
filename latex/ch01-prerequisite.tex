@@ -1,0 +1,220 @@
+% =====================================================================
+\chapter{Prerequisite}
+\label{ch:prereq}
+% =====================================================================
+
+\lettrine[lines=2,findent=2pt,nindent=0pt]{\color{inkred}B}{efore} talking about optimizers, we need two tools. Every proof of this book will use them: \emph{convexity} and \emph{L-smoothness}.\ednote{This short introduction was added to open the book; the notes start directly with ``I. Convexity''.}
+
+\section{Convexity}
+
+\Def{Def 1}
+Let $f:\mathbb{R}^d\to\mathbb{R}$. $f$ is convex iff $\forall x,y\in\mathbb{R}^d$, $\forall t\in\,]0,1[$:
+\begin{keyformula}
+\[
+f\bigl(tx+(1-t)y\bigr)\le t f(x)+(1-t)f(y)
+\]
+\end{keyformula}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=7cm,height=4.6cm,axis lines=left,xmin=-0.2,xmax=3.2,ymin=0,ymax=4.4,xtick=\empty,ytick=\empty,clip=false]
+\addplot[domain=0:3,samples=80,thick,black] {0.45*(x-1.3)^2+0.6};
+\addplot[inkred,thick,mark=*,mark size=1.6pt] coordinates {(0.2,1.1445)(2.9,1.752)};
+\node[inkred,font=\small,anchor=east] at (axis cs:0.2,1.15) {$f(y)$};
+\node[inkred,font=\small,anchor=west] at (axis cs:2.9,1.75) {$f(x)$};
+\draw[inkgreen,dashed] (axis cs:1.5,0) -- (axis cs:1.5,1.437);
+\fill[inkgreen] (axis cs:1.5,0.618) circle (1.6pt);
+\node[inkgreen,font=\scriptsize,anchor=north] at (axis cs:1.5,0) {$tx+(1-t)y$};
+\node[inkgreen,font=\scriptsize\itshape,align=left,anchor=west] at (axis cs:1.6,3.2) {the chord is always\\ above the curve};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\Def{Th 1}
+Let $f:\mathbb{R}^d\to\mathbb{R}$ be differentiable.\ednote{The notes don't state it, but the theorem needs $f$ to be differentiable, since it uses $\nabla f$.} $\forall x,y\in\mathbb{R}^d$: $f$ is convex iff:
+\begin{keyformula}
+\[
+\bigl\langle\nabla f(y),\,x-y\bigr\rangle\le f(x)-f(y)
+\]
+\end{keyformula}
+
+\Demo
+\begin{align*}
+f\text{ is cvx}&\iff f\bigl(tx+(1-t)y\bigr)\le tf(x)+(1-t)f(y)\\
+&\iff f\bigl(y+t(x-y)\bigr)\le f(y)+t\bigl(f(x)-f(y)\bigr)\\
+&\iff \frac{f\bigl(y+t(x-y)\bigr)-f(y)}{t}\le f(x)-f(y)\qquad(1)
+\end{align*}
+
+We know that, by using Taylor's development:
+\[
+f(l+h)=f(l)+f'(l)\,h+o(h)
+\]
+But if $l\in\mathbb{R}^d$ with $d\in\mathbb{N}^*\setminus\{1\}$, then:
+\[
+f(l+h)=f(l)+\underbrace{\bigl\langle\nabla f(l),h\bigr\rangle}_{\text{since }\nabla f(l)\cdot h\text{ has no meaning}}+o\bigl(\lVert h\rVert\bigr)
+\qquad\text{\ednotemark}\]
+\ednotetext{The notes write the remainder as $o(h^2)$. A first-order Taylor expansion has a remainder $o(h)$ (or $O(h^2)$ if $f$ is twice differentiable); $o(h^2)$ would be a second-order statement. The conclusion does not change: after dividing by $t$, the remainder still goes to 0.}
+
+Let $l=y$ and $h=t(x-y)$, then:
+\begin{align*}
+&\iff f\bigl(y+t(x-y)\bigr)=f(y)+\bigl\langle\nabla f(y),t(x-y)\bigr\rangle+o(t)\\
+&\iff \frac{f\bigl(y+t(x-y)\bigr)-f(y)}{t}=\bigl\langle\nabla f(y),x-y\bigr\rangle+\frac{o(t)}{t}\\
+&\iff \lim_{t\to0}\frac{f\bigl(y+t(x-y)\bigr)-f(y)}{t}=\bigl\langle\nabla f(y),x-y\bigr\rangle\qquad(2)
+\end{align*}
+\hlr{$\longrightarrow$ This is the directional derivative; we will take this statement without proving it.}
+
+$(2)\to(1)$:
+\begin{align*}
+\lim_{t\to0}\frac{f\bigl(y+t(x-y)\bigr)-f(y)}{t}&\le f(x)-f(y)\\
+\iff\bigl\langle\nabla f(y),x-y\bigr\rangle&\le f(x)-f(y)\\
+\iff\bigl\langle\nabla f(y),x-y\bigr\rangle+f(y)&\le f(x)\qquad\qedmark\text{\ednotemark}
+\end{align*}
+\ednotetext{This proves the direct implication (convex $\Rightarrow$ inequality). The converse is also true: apply the inequality at the point $z=tx+(1-t)y$, once towards $x$ and once towards $y$, multiply by $t$ and $1-t$, and sum.}
+
+\begin{goldbox}
+I call this formula ``the global minimum formula''.
+\end{goldbox}
+
+Because, let $y=x^*$, with $x^*$ a minimum (the point we are interested in).\ednote{The notes say ``a min that we want to prove unicity''. What the formula proves is that a point where the gradient vanishes is a \emph{global} minimum; it does not prove that this minimum is unique (for that, $f$ must be \emph{strictly} convex).} Then $\nabla f(x^*)=0$, and so $\bigl\langle\nabla f(x^*),x-x^*\bigr\rangle=0$, which leads to:
+\[
+f(x^*)\le f(x)\qquad\forall x\in\mathbb{R}^d
+\]
+It's the \textbf{global minimum}.
+
+\Def{Th 2}
+Let $f:\mathbb{R}^d\to\mathbb{R}$ be convex and twice differentiable; then $\forall x\in\mathbb{R}^d$, for $\lambda$ an eigenvalue of $\nabla^2 f(x)$: $\lambda\ge0$.
+
+\Demo
+From Th 1:
+\begin{align*}
+\bigl\langle\nabla f(y),x-y\bigr\rangle&\le f(x)-f(y)\qquad(1)\\
+\intertext{By applying it on $x$:}
+\bigl\langle\nabla f(x),y-x\bigr\rangle&\le f(y)-f(x)\qquad(2)
+\end{align*}
+$(1)+(2)$:
+\begin{align*}
+\bigl\langle\nabla f(x),y-x\bigr\rangle+\bigl\langle\nabla f(y),x-y\bigr\rangle&\le 0\\
+0&\le\bigl\langle\nabla f(x),x-y\bigr\rangle-\bigl\langle\nabla f(y),x-y\bigr\rangle\\
+0&\le\bigl\langle\nabla f(x)-\nabla f(y),x-y\bigr\rangle\qquad(3)
+\end{align*}
+
+Let's develop this expression:\ednote{The notes omit the limit $t\to0$ in the definition of the Hessian; it was added.}
+\begin{align*}
+\bigl\langle\nabla^2 f(x)u,u\bigr\rangle&=\lim_{t\to0}\left\langle\frac{\nabla f(x+tu)-\nabla f(x)}{t},u\right\rangle\\
+&=\lim_{t\to0}\left\langle\frac{\nabla f(x+tu)-\nabla f(x)}{t},\frac{(x+tu)-x}{t}\right\rangle\\
+&=\lim_{t\to0}\frac{1}{t^2}\underbrace{\bigl\langle\nabla f(x+tu)-\nabla f(x),(x+tu)-x\bigr\rangle}_{\ge0\ \text{from (3)}}\ \ge0
+\end{align*}
+So:
+\[
+\boxed{\bigl\langle\nabla^2 f(x)u,u\bigr\rangle\ge0}
+\]
+
+Let $u$ be an eigenvector of $\nabla^2 f(x)$, so $\nabla^2 f(x)u=\lambda u$. Then:
+\[
+\langle\lambda u,u\rangle\ge0\iff\lambda\langle u,u\rangle\ge0\iff\lambda\lVert u\rVert^2\ge0\implies\boxed{\lambda\ge0}
+\]
+
+So for any eigenvalue $\lambda$ of $\nabla^2 f(x)$, we are sure that it's non-negative.\qedmark
+
+\section{L-Smooth Functions}
+
+\Def{Def 2: L-Lipschitz function}
+Let $f:\mathbb{R}^d\to\mathbb{R}^m$. $f$ is L-Lipschitz iff $\exists L>0$, $\forall x,y\in\mathbb{R}^d$:\ednote{The notes write $\exists L\in\,]0,1[$ (here and in Th 3). The Lipschitz constant can be any positive number; $L<1$ is the special case of a \emph{contraction}. In the chapter on Gradient Descent the learning rate is $1/L$, which would be larger than 1 if $L<1$ was required, so the general case is needed.}
+\begin{keyformula}
+\[
+\lVert f(x)-f(y)\rVert\le L\lVert x-y\rVert
+\]
+\end{keyformula}
+
+\Def{Def 3: L-Smooth}
+Let $f:\mathbb{R}^d\to\mathbb{R}$. $f$ is L-smooth iff $f$ is differentiable and $\nabla f:\mathbb{R}^d\to\mathbb{R}^d$ is L-Lipschitz; $\forall x,y\in\mathbb{R}^d$:
+\begin{keyformula}
+\[
+\lVert\nabla f(x)-\nabla f(y)\rVert\le L\lVert x-y\rVert
+\]
+\end{keyformula}
+
+\Def{Th 3}
+If $f$ is L-smooth, then $\forall x,y\in\mathbb{R}^d$:\ednote{The notes write ``$f$ is L-smooth \emph{iff}''. The inequality (called the \emph{descent lemma}) is implied by L-smoothness, but the converse is false in general (a concave function satisfies it without being L-smooth). The converse holds if $f$ is also convex.}
+\begin{keyformula}
+\[
+f(y)\le f(x)+\bigl\langle\nabla f(x),y-x\bigr\rangle+\frac{L}{2}\lVert y-x\rVert^2
+\]
+\end{keyformula}
+
+\Demo
+Let $\phi(t)=f\bigl(x+t(y-x)\bigr)$. Then, by applying the fundamental theorem of calculus:
+\[
+\phi(1)-\phi(0)=\int_0^1\phi'(t)\,dt
+\]
+\begin{align*}
+&\iff f(y)-f(x)=\int_0^1\bigl\langle\nabla f\bigl(x+t(y-x)\bigr),\,y-x\bigr\rangle dt\\
+&\iff f(y)-f(x)=\bigl\langle\nabla f(x),y-x\bigr\rangle+\int_0^1\bigl\langle\nabla f\bigl(x+t(y-x)\bigr)-\nabla f(x),\,y-x\bigr\rangle dt\\
+&\implies f(y)\le f(x)+\bigl\langle\nabla f(x),y-x\bigr\rangle+\int_0^1\bigl\lVert\nabla f\bigl(x+t(y-x)\bigr)-\nabla f(x)\bigr\rVert\,\lVert y-x\rVert\,dt\\ &\hspace{8.5cm}\text{(Cauchy--Schwarz)}\\
+&\implies f(y)\le f(x)+\bigl\langle\nabla f(x),y-x\bigr\rangle+\int_0^1 L\,t\,\lVert y-x\rVert^2\,dt\qquad\text{($\nabla f$ is L-Lipschitz)}\\
+&\implies f(y)\le f(x)+\bigl\langle\nabla f(x),y-x\bigr\rangle+\frac{L}{2}\lVert y-x\rVert^2\qquad\qedmark\text{\ednotemark}
+\end{align*}
+\ednotetext{The notes write ``$\iff$'' at every line; from the Cauchy--Schwarz step on, the lines are only implications ($\implies$).}
+
+\section{Convex and L-Smooth Functions}
+
+\Def{Th 4}
+If a function is convex and L-smooth, then:\ednote{The notes call it ``Def 4''. It is a property that we prove (so a theorem), and it was renamed accordingly. In the notes, the right-hand side of (2) is written $\langle\nabla f(x)-\nabla f(y),y-x\rangle$ on this line and correctly $\langle\nabla f(y)-\nabla f(x),y-x\rangle$ at the end of the demo; the sign was fixed here.}
+\[
+\left\{\begin{aligned}
+\frac{1}{2L}\lVert\nabla f(y)-\nabla f(x)\rVert^2&\le f(y)-f(x)-\bigl\langle\nabla f(x),y-x\bigr\rangle&(1)\\
+\frac{1}{L}\lVert\nabla f(y)-\nabla f(x)\rVert^2&\le\bigl\langle\nabla f(y)-\nabla f(x),y-x\bigr\rangle&(2)
+\end{aligned}\right.
+\]
+
+\Demo
+\[
+f(x)-f(y)=f(x)-f(z)+f(z)-f(y)
+\]
+We know that (convexity, Th 1):
+\begin{align*}
+\bigl\langle\nabla f(x),z-x\bigr\rangle&\le f(z)-f(x)\\
+\bigl\langle\nabla f(x),x-z\bigr\rangle&\ge f(x)-f(z)\qquad(*)
+\end{align*}
+And (L-smoothness, Th 3):
+\begin{align*}
+f(z)&\le f(y)+\bigl\langle\nabla f(y),z-y\bigr\rangle+\frac{L}{2}\lVert z-y\rVert^2\\
+\implies f(z)-f(y)&\le\bigl\langle\nabla f(y),z-y\bigr\rangle+\frac{L}{2}\lVert z-y\rVert^2\qquad(**)
+\end{align*}
+By summing $(*)$ and $(**)$, we have:
+\begin{align*}
+f(x)-f(y)&\le\bigl\langle\nabla f(x),x-z\bigr\rangle+\bigl\langle\nabla f(y),z-y\bigr\rangle+\frac{L}{2}\lVert z-y\rVert^2\\
+f(x)-f(y)&\le\underbrace{\bigl\langle\nabla f(x),x\bigr\rangle-\bigl\langle\nabla f(x),z\bigr\rangle+\bigl\langle\nabla f(y),z\bigr\rangle-\bigl\langle\nabla f(y),y\bigr\rangle+\frac{L}{2}\lVert z-y\rVert^2}_{g(z)}
+\end{align*}
+
+This inequality is valid for every $z\in\mathbb{R}^d$. Let's take the perfect one (the min):
+\[
+\nabla_z g(z)=-\nabla f(x)+\nabla f(y)+L\,(z-y)=0
+\iff
+\boxed{z-y=-\frac{1}{L}\bigl(\nabla f(y)-\nabla f(x)\bigr)}\quad(*{*}*)\text{\ednotemark}\]
+\ednotetext{The notes write the optimality condition with norms: $-\nabla f(x)+\nabla f(y)+L\lVert z-y\rVert=0$ and $\lVert z-y\rVert=\frac1L\lVert\nabla f(y)-\nabla f(x)\rVert$. The gradient of $g$ is a vector, so the condition is a vector equation; its direction (the minus sign) is needed in the next step.}
+\begin{align*}
+&\iff f(x)-f(y)\le\bigl\langle\nabla f(x),x-z\bigr\rangle+\bigl\langle\nabla f(y),z-y\bigr\rangle+\frac{L}{2}\lVert z-y\rVert^2\\
+&\iff f(x)-f(y)\le\bigl\langle\nabla f(x),x-y\bigr\rangle+\bigl\langle\nabla f(y)-\nabla f(x),z-y\bigr\rangle+\frac{1}{2L}\lVert\nabla f(y)-\nabla f(x)\rVert^2\\
+&\iff f(x)-f(y)\le\bigl\langle\nabla f(x),x-y\bigr\rangle+\Bigl\langle\nabla f(y)-\nabla f(x),-\tfrac{1}{L}\bigl(\nabla f(y)-\nabla f(x)\bigr)\Bigr\rangle\\
+&\hspace{6.2cm}+\frac{1}{2L}\lVert\nabla f(y)-\nabla f(x)\rVert^2\\
+&\iff f(x)-f(y)\le\bigl\langle\nabla f(x),x-y\bigr\rangle-\frac{1}{L}\lVert\nabla f(y)-\nabla f(x)\rVert^2+\frac{1}{2L}\lVert\nabla f(y)-\nabla f(x)\rVert^2\\
+&\iff f(x)-f(y)\le\bigl\langle\nabla f(x),x-y\bigr\rangle-\frac{1}{2L}\lVert\nabla f(y)-\nabla f(x)\rVert^2\\
+&\iff \frac{1}{2L}\lVert\nabla f(y)-\nabla f(x)\rVert^2\le\bigl\langle\nabla f(x),x-y\bigr\rangle+f(y)-f(x)\\
+&\iff \frac{1}{2L}\lVert\nabla f(y)-\nabla f(x)\rVert^2\le f(y)-f(x)-\bigl\langle\nabla f(x),y-x\bigr\rangle\qquad\qedmark
+\end{align*}
+
+\Demo[Demo for (2)]
+We write (1), then (1) again with $x$ and $y$ swapped:
+\[
+\left\{\begin{aligned}
+\frac{1}{2L}\lVert\nabla f(y)-\nabla f(x)\rVert^2&\le f(y)-f(x)-\bigl\langle\nabla f(x),y-x\bigr\rangle\\
+\frac{1}{2L}\lVert\nabla f(x)-\nabla f(y)\rVert^2&\le f(x)-f(y)-\bigl\langle\nabla f(y),x-y\bigr\rangle
+\end{aligned}\right.
+\]
+By summing:
+\begin{keyformula}[Co-coercivity]
+\[
+\frac{1}{L}\lVert\nabla f(y)-\nabla f(x)\rVert^2\le\bigl\langle\nabla f(y)-\nabla f(x),y-x\bigr\rangle
+\]
+\end{keyformula}

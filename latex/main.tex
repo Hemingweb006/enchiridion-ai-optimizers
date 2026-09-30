@@ -1,0 +1,79 @@
+% =====================================================================
+%  The Enchiridion for AI Optimizers Theory
+%  Author : Reda Louriki
+%  Handwritten by the author, typeset in LaTeX by Claude Opus 5.5 (Book II of the series)
+% =====================================================================
+\documentclass[11pt,a4paper,twoside,openright]{book}
+
+% ---------- Encoding & fonts ----------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathpazo}              % Palatino text + math
+\usepackage[scaled=0.92]{helvet}   % sans for headings
+\usepackage{microtype}
+\linespread{1.08}
+
+% ---------- Page layout ----------
+\usepackage[a4paper,top=26mm,bottom=28mm,inner=28mm,outer=24mm,headheight=14pt]{geometry}
+
+% ---------- Math ----------
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+
+% ---------- Graphics ----------
+\usepackage[table]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc,decorations.pathmorphing,decorations.pathreplacing,shadows,fadings,patterns,backgrounds,fit}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\usepackage{graphicx}
+
+% ---------- Tables, lists, boxes ----------
+\usepackage{booktabs,array,multirow}
+\usepackage{enumitem}
+\usepackage[most]{tcolorbox}
+\usepackage{caption}
+\captionsetup{font=small,labelfont={bf,sf}}
+\usepackage{pifont}
+\usepackage{lettrine}
+
+% ---------- Headings, headers ----------
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{emptypage}
+
+% ---------- Links ----------
+\usepackage[hidelinks,bookmarksnumbered]{hyperref}
+\hypersetup{pdftitle={The Enchiridion for AI Optimizers Theory},
+            pdfauthor={Reda Louriki}}
+
+\input{preamble-style}
+
+% =====================================================================
+\begin{document}
+
+\input{cover}
+
+\frontmatter
+\pagestyle{plain}
+\input{preface}
+
+\tableofcontents
+
+\mainmatter
+\pagestyle{fancy}
+\input{ch01-prerequisite}
+\input{ch02-gradient-descent}
+\input{ch03-sgd}
+\input{ch04-momentum-nesterov}
+\input{ch05-rmsprop}
+\input{ch06-adam-adamw}
+\input{ch07-other-adam}
+\input{ch08-lr-schedule}
+
+\backmatter
+\input{appendix-notes}
+
+\input{backcover}
+\end{document}

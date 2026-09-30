@@ -1,0 +1,215 @@
+% =====================================================================
+\chapter{Stochastic Gradient Descent}
+\label{ch:sgd}
+% =====================================================================
+
+\tikzset{contours/.pic={
+  \foreach \r in {0.55,1.15,1.8} \draw[thick,black!75] (0,0) ellipse ({2.3*\r} and {\r});
+  \fill[inkred] (0,0) circle (2.2pt);}}
+
+\Prob[Problematic]
+\lettrine[lines=2,findent=2pt,nindent=0pt]{\color{inkred}S}{GD} is an enhancement of GD, mostly used when the objective (loss) function can be written as a sum function:
+\[
+x_{k+1}=x_k-\gamma\,\nabla f(x_k)\qquad\text{with:}\qquad
+\boxed{f(x_k)=\frac{1}{n}\sum_{i=1}^{n}f_i(x_k)}
+\qquad\text{\ednotemark}\]
+\ednotetext{The notes write the sum $\sum_{i=1}^{n-1}$, which has $n-1$ terms; with the factor $\frac1n$ the sum goes from $i=1$ to $n$. The same fix was applied to the gradient, where the notes also forgot the $\nabla$: $\nabla f(x_k)=\frac1n\sum\nabla f_i(x_k)$.}
+
+So the goal here came from a remark: to compute all the $(x_k)$, we need to compute all the $\nabla f_i(x_k)$ and sum them up!
+\[
+\nabla f(x_k)=\frac{1}{n}\sum_{i=1}^{n}\nabla f_i(x_k)
+\]
+Pretty slow though, isn't it? So here comes the idea of SGD.
+
+\Def{Def: SGD}
+We start from the assumption that $i$ (the index of $f_i$) is a random variable that follows a uniform distribution. In other words:
+\[
+I=\{1,2,\dots,n\},\qquad I\sim\mathcal{U}\iff P(I=i)=\frac{1}{n}
+\]
+Then the idea is to compute the step $x_{k+1}$ by only using one $\nabla f_i(x_k)$, randomly chosen:
+\[
+x_{k+1}=x_k-\gamma\,\nabla f_i(x_k)
+\]
+
+\Q{Well, does it work?}
+
+\Def{Theorem}
+SGD is an ``\textbf{unbiased}'' estimator of GD.
+
+\Demo[Proof]
+An estimator $\hat\theta$ that estimates $\theta$ is said to be ``unbiased'' iff:
+\[
+E(\hat\theta)-\theta=0\implies\boxed{E(\hat\theta)=\theta}
+\]
+So SGD relies on picking up $f_i$ randomly, with $P(I=i)=\frac1n$, then computing $\nabla f_i(x_k)$. So:
+\begin{align*}
+E\bigl(\nabla f_i(x_k)\,\big|\,x_k\bigr)&=\sum_{i=1}^{n}\nabla f_i(x_k)\times P(I=i)\\
+&=\sum_{i=1}^{n}\nabla f_i(x_k)\times\frac1n=\frac1n\sum_{i=1}^{n}\nabla f_i(x_k)=\nabla f(x_k)
+\end{align*}
+\[
+\implies\underbrace{E\bigl(\nabla f_i(x_k)\,|\,x_k\bigr)}_{\text{leads to SGD}}=\underbrace{\nabla f(x_k)}_{\text{leads to GD}}
+\]
+So SGD is an unbiased estimator of GD.\qedmark
+
+\Def{Core idea and visualisation}
+\begin{center}
+\begin{tikzpicture}
+  \pic at (0,0) {contours};
+  % GD
+  \draw[inkgreen,very thick,-{Stealth[length=2mm]}] (-4.1,0.1) -- (-2.6,0.06) -- (-1.4,0.03) -- (-0.2,0.0);
+  % SGD
+  \draw[inkblue,thick,-{Stealth[length=2mm]}] (-4.1,0.1) -- (-3.6,0.95) -- (-3.1,-0.85) -- (-2.5,0.9) -- (-2.0,-0.8) -- (-1.5,0.7) -- (-1.0,-0.55) -- (-0.55,0.4) -- (-0.2,-0.1);
+  % bowl
+  \begin{scope}[xshift=6.3cm,yshift=-0.2cm]
+    \draw[thick] (-1,1) .. controls (-0.9,-0.6) and (-0.4,-1.1) .. (0,-1.1) .. controls (0.4,-1.1) and (0.9,-0.6) .. (1,1);
+    \draw[thick] (0,1) ellipse (1 and 0.18);
+    \foreach \y/\w in {0.35/0.93,-0.3/0.78} \draw[black!60] (0,\y) ellipse ({\w} and 0.13);
+    \fill[inkred] (0,-1.05) circle (2pt);
+    \draw[-Stealth,thick] (0,2.1) -- (0,1.35) node[pos=0,above,font=\scriptsize] {view from above};
+  \end{scope}
+  \node at (5.05,0) {\Large $=$};
+  \node[font=\small] at (-2.5,-2.3) {{\color{inkblue}$\bm{\wr\wr}$} : SGD \qquad {\color{inkgreen}$\bm{\wr\wr}$} : GD};
+\end{tikzpicture}
+\end{center}
+
+As we see, it's a noisy pattern; the noise comes from the \textbf{variance}:
+\begin{align*}
+\operatorname{Var}_i\bigl(\nabla f_i(x_k)\bigr)&=E_i\Bigl(\bigl\lVert\nabla f_i(x_k)-E\bigl(\nabla f_i(x_k)\bigr)\bigr\rVert^2\Bigr)\\
+&=E_i\Bigl(\bigl\lVert\underbrace{\nabla f_i(x_k)-\nabla f(x_k)}_{\varepsilon_i}\bigr\rVert^2\Bigr)\\
+&=E_i\bigl(\lVert\varepsilon_i\rVert^2\bigr)\qquad\longleftarrow\ \text{\small the deviation from the SGD point}
+\end{align*}
+
+The variance shows that in the SGD path, there are noises, so we can rewrite the SGD formula as follows:
+\begin{align*}
+x_{k+1}&=x_k-\gamma\bigl(\nabla f(x_k)+\varepsilon\bigr)\\
+x_{k+1}&=x_k-\gamma\,\nabla f(x_k)-\gamma\,\varepsilon\qquad(\varepsilon\in\mathbb{R}^d)
+\end{align*}
+with $\varepsilon$ the noise, and $\boxed{E(\varepsilon)=0}$.\ednote{The notes write $\varepsilon\in\mathbb{R}$; the noise has the same dimension as the gradient, so $\varepsilon\in\mathbb{R}^d$.}
+
+So what happens:
+\begin{center}
+\begin{tikzpicture}
+  \draw[inkblue,very thick,-Stealth] (0,0) -- (4,0);
+  \draw[inkgreen,thick,-Stealth] (0,0) -- (4,0.9);
+  \draw[inkgreen,thick,-Stealth] (0,0) -- (4,-0.9);
+  \draw[inkpurple,thick] (4,-0.9) -- (4,0.9);
+  \node[inkpurple,font=\small,anchor=west] at (4.1,0.5) {$\varepsilon>0$};
+  \node[inkpurple,font=\small,anchor=west] at (4.1,-0.5) {$\varepsilon<0$};
+  \draw[inkgreen,decorate,decoration={brace,amplitude=4pt}] (5.0,0.9) -- (5.0,-0.9) node[midway,right=6pt,font=\small\itshape,align=left] {deviation of SGD\\ (the noise)};
+  \node[font=\small] at (2,-1.6) {{\color{inkgreen}$\bm{\wr\wr}$} $\nabla f_i(x_k)$ \qquad {\color{inkblue}$\bm{\wr\wr}$} $\nabla f(x_k)$};
+\end{tikzpicture}
+\end{center}
+
+\begin{warnbox}[Important Remarks:]
+\begin{enumerate}
+  \item In practice, we choose $f_i$ randomly, but we pass through all the $f_i$ with $i\in I$. The period of passing through all the $f_i$ is called an ``\textbf{epoch}''.
+  \item Complexity of SGD: $O\!\left(\dfrac{1}{\varepsilon^2}\right)$ for convex and L-smooth functions.\ednotemark\\
+  \hlr{Slower (theoretically) than GD.}
+\end{enumerate}
+\end{warnbox}
+\ednotetext{The notes write $O\!\left(\frac{1}{\sqrt\varepsilon}\right)$. For convex L-smooth functions (with a bounded noise variance and a decreasing step), SGD reaches $E[f(\bar x_K)]-f(x^*)=O\!\left(\frac{1}{\sqrt K}\right)$, i.e.\ $O\!\left(\frac{1}{\varepsilon^2}\right)$ iterations. Note that $O\!\left(\frac{1}{\sqrt\varepsilon}\right)$ would be \emph{faster} than GD's $O\!\left(\frac1\varepsilon\right)$, which contradicts ``slower than GD''; with $\frac{1}{\varepsilon^2}$ the sentence becomes true.}
+
+\Q{Why, in practice, do we still prefer SGD to GD, even if it's slower and noisier than GD?}
+
+The answer is: in practice,
+\[
+\text{Cost}=O(c)\times t_{\text{iter}}
+\]
+\begin{itemize}
+  \item $O(c)$: cost per iteration;
+  \item $t_{\text{iter}}$: number of iterations.
+\end{itemize}
+
+Yes, it's true: $O\!\left(\frac{1}{\varepsilon}\right)$ is better than $O\!\left(\frac{1}{\varepsilon^2}\right)$. But don't forget that:
+\begin{center}
+\begin{tikzpicture}
+  \node (a) at (0,0) {$O(n)$};
+  \node[right=3pt of a] (m) {is slower than};
+  \node[right=3pt of m] (b) {$O(1)$};
+  \node[font=\scriptsize\itshape,align=center] (ta) at (-1.9,-0.8) {complexity to\\ compute $\nabla f(x_k)$};
+  \node[font=\scriptsize\itshape,align=center] (tb) at (5.1,0.8) {complexity to\\ compute $\nabla f_i(x_k)$};
+  \draw[-Stealth] (ta) -- (a); \draw[-Stealth] (tb) -- (b);
+\end{tikzpicture}
+\end{center}
+For a dataset with millions of rows, $n$ is huge: GD costs $O\!\left(\frac{n}{\varepsilon}\right)$, SGD costs $O\!\left(\frac{1}{\varepsilon^2}\right)$, and it doesn't depend on $n$.
+
+\Q{How about noises?}
+
+Noises aren't always bad! They can avoid local minima and saddle points problems, by taking other random paths than the straightforward one (for non-convex functions).
+
+That's the main reason, but surely there are others, like avoiding overfitting since the algorithm is seeing new data at each step, etc.
+
+\section{Key Improvements}
+
+\subsection*{\color{inkred}Mini-Batch GD}
+
+Well, computing $x_{k+1}$ by picking \underline{one} $f_i(x_k)$ each time can be pretty slow. So, let's say this time:
+
+\begin{center}
+\begin{tikzpicture}
+  \draw[very thick] (0,0) ellipse (2.1 and 1.25);
+  \draw[inkred,thick,rotate=-10] (-0.95,0.45) ellipse (0.85 and 0.42);
+  \draw[inkred,thick] (1.05,0.65) ellipse (0.45 and 0.3);
+  \draw[inkred,thick,rotate=30] (0.35,-0.45) ellipse (0.8 and 0.35);
+  \draw[inkred,thick] (1.45,-0.1) ellipse (0.35 and 0.5);
+  \node[font=\small] at (-1.3,0.55) {$f_1\ f_2\ f_3$};
+  \node[font=\small] at (-1.2,-0.2) {$f_4$};
+  \node[font=\small] at (0.2,-0.45) {$\dots$};
+  \node[font=\small] at (1.45,-0.1) {$f_i$};
+  \node[font=\itshape,align=left,anchor=west] at (2.6,0.2) {We divide the set of $f_i$ into\\ equal \underline{batches}, and then:};
+\end{tikzpicture}
+\end{center}
+\[
+x_{k+1}=x_k-\gamma\,\nabla f_T(x_k)\qquad\text{with}\qquad
+\nabla f_T(x_k)=\frac{1}{\beta-\alpha}\sum_{i=\alpha}^{\beta-1}\nabla f_i(x_k)
+\]
+with $\beta=\alpha+\text{batch size}$.\ednote{The notes sum from $i=\alpha$ to $\beta$, which gives $\text{batch size}+1$ terms while dividing by $\beta-\alpha=\text{batch size}$. The upper index is $\beta-1$.}
+
+\begin{goldbox}
+That's the most used in practice.
+\end{goldbox}
+
+\subsection*{\color{inkred}Average Stochastic Gradient Descent}
+
+The ASGD comes from a discovery made by Boris Polyak:
+
+\begin{center}
+\begin{tikzpicture}
+  \pic at (0,0) {contours};
+  \draw[inkgreen,thick] (-4.1,-0.3) -- (-3.5,0.5) -- (-3.0,-0.2) -- (-2.5,0.6) -- (-2.0,-0.3) -- (-1.4,0.5) -- (-0.9,-0.25) -- (-0.5,0.3) -- (-0.1,-0.2) -- (0.25,0.15) -- (-0.15,0.2) -- (0.2,-0.18);
+  \draw[inkpurple,thick] (-0.35,-0.35) rectangle (0.35,0.35);
+  \draw[inkpurple] (0.35,0.35) -- (4.3,1.9); \draw[inkpurple] (0.35,-0.35) -- (4.3,-0.3);
+  \begin{scope}[xshift=5.4cm,yshift=0.8cm]
+    \draw[inkpurple,thick] (-1.1,-1.1) rectangle (1.1,1.1);
+    \fill[inkred] (0,0) circle (2.5pt); \node[inkred,font=\scriptsize] at (0.3,-0.25) {$x^*$};
+    \draw[inkgreen,thick,-Stealth] (-0.7,0.6) -- (0.6,0.5) -- (0.55,-0.6) -- (-0.6,-0.4) -- (-0.7,0.55);
+    \foreach \p in {(-0.7,0.6),(0.6,0.5),(0.55,-0.6),(-0.6,-0.4)} \fill \p circle (1.6pt);
+  \end{scope}
+  \node[font=\small\itshape,align=center] at (5.4,-1.2) {SGD doesn't reach the actual\\ minimum because of noises.};
+\end{tikzpicture}
+\end{center}
+
+So:
+\[
+x_k=x^*+\varepsilon_k\qquad\longleftarrow\ \text{noises at iteration }k,\ \text{with }E_k(\varepsilon)=0
+\]
+
+\hl{The idea: average it!}\ednote{The notes write the average with the indices $\sum_{k=1}^{K-1}$ and $\frac1K$, and then an equality $\bar x_K=x^*+E(\varepsilon_k)$. The average of $K$ terms goes from $k=0$ to $K-1$; and the empirical mean of the noises is only \emph{approximately} equal to its expectation (law of large numbers), so the result is $\bar x_K\approx x^*$, better and better as $K$ grows.}
+\begin{align*}
+\bar x_K&=\frac1K\sum_{k=0}^{K-1}x^*+\underbrace{\frac1K\sum_{k=0}^{K-1}\varepsilon_k}_{\approx\,E(\varepsilon_k)}\\
+\bar x_K&\approx x^*+\underbrace{E(\varepsilon_k)}_{=0}\\
+&\boxed{\bar x_K\approx x^*}
+\end{align*}
+
+So then comes the algorithm:
+\begin{itemize}
+  \item \hlg{We first start with SGD:}
+  \[
+  x_k=x_{k-1}-\gamma\,\nabla f_i(x_{k-1})
+  \]
+  \item \hlg{Then fix it with the Polyak average:}
+  \[
+  \bar x_k=\bar x_{k-1}+\frac1k\bigl(x_k-\bar x_{k-1}\bigr)\text{\ednotemark}
+  \]
+\end{itemize}
+\ednotetext{The notes write $x_k=x_{k-1}-\gamma\nabla f_i(x_k)$; the gradient is computed at the current point $x_{k-1}$. The second line is the running mean: it is exactly $\bar x_k=\frac1k\sum_{j=1}^{k}x_j$, updated without storing all the $x_j$.}

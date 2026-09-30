@@ -1,0 +1,140 @@
+% =====================================================================
+\chapter{Gradient Descent}
+\label{ch:gd}
+% =====================================================================
+
+\Def[Follow the steepest slope directly.]{Def: GD}
+
+The gradient descent is an algorithm defined by the sequence $(x_k)$:
+\begin{keyformula}
+\[
+x_{k+1}=x_k-\gamma\,\nabla f(x_k)
+\]
+\end{keyformula}
+\noindent and $\gamma$ is called the \textbf{learning step} (the learning rate).
+
+\begin{center}
+\begin{tikzpicture}[scale=0.9]
+  \foreach \r in {0.5,1.1,1.7,2.3} \draw[thick,black!70] (0,0) ellipse ({1.9*\r} and {\r});
+  \fill[inkred] (0,0) circle (2.2pt);
+  \draw[inkgreen,very thick,-{Stealth[length=2.2mm]}] (-4.1,1.2) -- (-2.6,0.62) -- (-1.6,0.33) -- (-0.8,0.14) -- (-0.25,0.04);
+  \foreach \p in {(-4.1,1.2),(-2.6,0.62),(-1.6,0.33),(-0.8,0.14)} \fill[inkgreen] \p circle (1.5pt);
+  \node[inkgreen,font=\small\itshape,anchor=east] at (-4.2,1.25) {$x_0$};
+  \node[inkred,font=\small,anchor=north] at (0,-0.1) {$x^*$};
+\end{tikzpicture}
+\end{center}
+
+\Def{Th: Proof of convergence}
+The gradient descent is defined as:
+\[
+x_{k+1}=x_k-\gamma\,\nabla f(x_k)
+\]
+Let's determine the optimal range for $\gamma$. $f$ is convex and L-smooth, and so (Th 3):
+\[
+f(y)\le f(x)+\bigl\langle\nabla f(x),y-x\bigr\rangle+\frac{L}{2}\lVert y-x\rVert^2
+\]
+Let $y=x-\gamma\nabla f(x)\implies y-x=-\gamma\nabla f(x)$. So:\ednote{The notes write the last term $\frac{L}{2}\gamma^2\lVert f(x)\rVert^2$; it is $\lVert\nabla f(x)\rVert^2$.}
+\begin{align*}
+f(y)&\le f(x)-\gamma\lVert\nabla f(x)\rVert^2+\frac{L}{2}\gamma^2\lVert\nabla f(x)\rVert^2\\
+f(y)&\le f(x)+\gamma\left(\frac{L}{2}\gamma-1\right)\lVert\nabla f(x)\rVert^2
+\end{align*}
+$\gamma\left(\frac{L}{2}\gamma-1\right)<0$, so that the sequence $f(x_k)$ decreases. $\gamma>0$, and so:
+\[
+\frac{L}{2}\gamma-1<0\implies\gamma<\frac{2}{L}\implies 0<\gamma<\frac{2}{L}
+\]
+Let $\gamma=\frac{1}{L}$ (we can also choose $\gamma=\frac{1.5}{L}$).
+
+So the new expression of GD:
+\begin{align*}
+x_{k+1}&=x_k-\frac{1}{L}\nabla f(x_k)\\
+\iff x_{k+1}-x^*&=x_k-x^*-\frac{1}{L}\nabla f(x_k)\\
+\lVert x_{k+1}-x^*\rVert^2&=\lVert x_k-x^*\rVert^2-\frac{2}{L}\bigl\langle\nabla f(x_k),x_k-x^*\bigr\rangle+\frac{1}{L^2}\lVert\nabla f(x_k)\rVert^2
+\end{align*}
+
+From the definition of L-smooth functions, the co-coercivity (Th 4), with $\nabla f(x^*)=0$:
+\begin{align*}
+\frac{1}{L}\lVert\nabla f(x_k)-\nabla f(x^*)\rVert^2&\le\bigl\langle\nabla f(x_k)-\nabla f(x^*),x_k-x^*\bigr\rangle\\
+\iff\frac{1}{L}\lVert\nabla f(x_k)\rVert^2&\le\bigl\langle\nabla f(x_k),x_k-x^*\bigr\rangle\\
+\iff -\frac{2}{L^2}\lVert\nabla f(x_k)\rVert^2&\ge-\frac{2}{L}\bigl\langle\nabla f(x_k),x_k-x^*\bigr\rangle
+\end{align*}
+By replacing this expression:\ednote{The notes write this inequality with norms instead of \emph{squared} norms: $\lVert x_{k+1}-x^*\rVert\le\lVert x_k-x^*\rVert-\frac{1}{L^2}\lVert\nabla f(x_k)\rVert^2$. The squares come from the expansion of $\lVert x_{k+1}-x^*\rVert^2$ above. The conclusion is the same.}
+\begin{align*}
+\lVert x_{k+1}-x^*\rVert^2&\le\lVert x_k-x^*\rVert^2-\frac{1}{L^2}\lVert\nabla f(x_k)\rVert^2\\
+\text{So}\quad\lVert x_{k+1}-x^*\rVert&\le\lVert x_k-x^*\rVert\\
+\iff\ &\boxed{\lVert x_{k+1}-x^*\rVert\le\lVert x_0-x^*\rVert}
+\end{align*}
+
+So the distance between the GD sequence $(x_k)$ and $x^*$ is decreasing: at each step, GD gets closer to (or at least never moves away from) the minimum.\ednote{The notes say ``the GD sequence $(x_k)$ is decreasing and converges towards $x^*$''. What is proven here is that the \emph{distance} $\lVert x_k-x^*\rVert$ is non-increasing ($x_k$ itself is a vector, it cannot be ``decreasing''). That alone does not prove convergence; the convergence of $f(x_k)$ towards $f(x^*)$ is exactly what the next theorem proves, with its speed.}
+
+\Def{Th: Proof for the speed of convergence (convex L-smooth functions)}
+\begin{align*}
+f(x_{k+1})&\le f(x_k)+\gamma\left(\frac{L}{2}\gamma-1\right)\lVert\nabla f(x_k)\rVert^2\\
+\iff f(x_{k+1})&\le f(x_k)+\frac{1}{L}\left(\frac12-1\right)\lVert\nabla f(x_k)\rVert^2\\
+\iff f(x_{k+1})&\le f(x_k)-\frac{1}{2L}\lVert\nabla f(x_k)\rVert^2\\
+\iff f(x_{k+1})-f(x^*)&\le f(x_k)-f(x^*)-\frac{1}{2L}\lVert\nabla f(x_k)\rVert^2
+\end{align*}
+
+Using the definition of convexity (Th 1):
+\begin{align*}
+\bigl\langle\nabla f(x_k),x^*-x_k\bigr\rangle&\le f(x^*)-f(x_k)\\
+\bigl\langle\nabla f(x_k),x_k-x^*\bigr\rangle&\ge f(x_k)-f(x^*)\\
+\lVert\nabla f(x_k)\rVert\,\lVert x_k-x^*\rVert&\ge f(x_k)-f(x^*)\qquad\text{(Cauchy--Schwarz)}\\
+\lVert\nabla f(x_k)\rVert^2&\ge\frac{\bigl(f(x_k)-f(x^*)\bigr)^2}{\lVert x_k-x^*\rVert^2}\\
+-\frac{1}{2L}\lVert\nabla f(x_k)\rVert^2&\le-\frac{1}{2L}\,\frac{\bigl(f(x_k)-f(x^*)\bigr)^2}{\lVert x_k-x^*\rVert^2}
+\end{align*}
+So:
+\[
+f(x_{k+1})-f(x^*)\le f(x_k)-f(x^*)-\frac{1}{2L}\,\frac{\bigl(f(x_k)-f(x^*)\bigr)^2}{\lVert x_k-x^*\rVert^2}
+\]
+
+Let $\delta_k=f(x_k)-f(x^*)$ and $\beta=\dfrac{1}{2L\lVert x_0-x^*\rVert^2}$. Since $\lVert x_k-x^*\rVert\le\lVert x_0-x^*\rVert$ (previous theorem):\ednote{The notes define $\beta=\frac{1}{2L\lVert x_k-x^*\rVert^2}$. That $\beta$ would change at every step, and the sum over $k$ below needs a constant. Replacing $\lVert x_k-x^*\rVert$ by the larger $\lVert x_0-x^*\rVert$ (allowed thanks to the previous theorem) gives a constant $\beta$; it is also the value the notes use at the end.}
+\begin{align*}
+&\iff \delta_{k+1}\le\delta_k-\beta\,\delta_k^2\\
+&\iff \delta_{k+1}-\delta_k\le-\beta\,\delta_k^2\iff\delta_k-\delta_{k+1}\ge\beta\,\delta_k^2
+\end{align*}
+Dividing by $\delta_k\,\delta_{k+1}$:
+\begin{align*}
+\frac{1}{\delta_{k+1}}-\frac{1}{\delta_k}&\ge\beta\,\frac{\delta_k}{\delta_{k+1}}\ge\beta\qquad\left(\delta_k\ge\delta_{k+1}\implies\frac{\delta_k}{\delta_{k+1}}\ge1\right)\\
+\iff\sum_{k=0}^{K-1}\left(\frac{1}{\delta_{k+1}}-\frac{1}{\delta_k}\right)&\ge K\beta\qquad\text{(with $K$ the number of necessary steps to reach an error $\varepsilon_K$)}\\
+\iff\frac{1}{\delta_K}-\frac{1}{\delta_0}&\ge K\beta\qquad(\delta_0>0)\\
+\implies\frac{1}{\delta_K}\ge K\beta&\iff\delta_K\le\frac{1}{\beta K}\\
+\iff f(x_K)-f(x^*)&\le\frac{2L\lVert x_0-x^*\rVert^2}{K}
+\end{align*}
+
+\begin{center}
+\begin{tikzpicture}
+  \node (eq) {\Large $\varepsilon_K\ \le\ \dfrac{2L\lVert x_0-x^*\rVert^2}{K}$};
+  \node[inkgray,font=\small\itshape] (a) at (-3.6,-0.9) {Error at step $K$};
+  \draw[-Stealth,inkgray] (a.north east) -- (-1.75,-0.2);
+  \node[inkgray,font=\small\itshape] (b) at (3.6,0.9) {Constant $C$};
+  \draw[-Stealth,inkgray] (b.west) -- (1.9,0.45);
+  \node[inkgray,font=\small\itshape] (c) at (3.6,-0.9) {Number of steps};
+  \draw[-Stealth,inkgray] (c.west) -- (0.85,-0.5);
+\end{tikzpicture}
+\end{center}
+
+\begin{center}
+\tikz\node[draw=inkred,thick,inner sep=8pt]{\Large $\displaystyle K\ \ge\ \frac{C}{\varepsilon}\ \text{ steps are enough to reach an error }\varepsilon$};\ednotemark
+\end{center}
+\ednotetext{The notes box the result as $K\le\frac{C}{\varepsilon_K}$, which is algebraically equivalent to $\varepsilon_K\le\frac{C}{K}$. The useful reading for the complexity is the other way around: to guarantee an error $\varepsilon$, it is \emph{enough} to take $K=\frac{C}{\varepsilon}$ steps, hence $O\!\left(\frac1\varepsilon\right)$.}
+
+\Rem[Interpretation]
+\begin{itemize}
+  \item If we want to reduce the error $\varepsilon_K$ by 10, we need to multiply $K$ by 10.
+  \item The number of steps is exactly inversely proportional to the error.
+\end{itemize}
+
+\Def{Conclusion}
+The convergence of GD is \textbf{sub-linear} in the case of convex L-smooth functions, with a complexity of:
+\begin{keyformula}
+\[
+O\!\left(\frac{1}{\varepsilon}\right)
+\]
+\end{keyformula}
+
+\Def{Remarks}
+We can aim for better results in terms of speed, given these assumptions:
+\begin{itemize}
+  \item[$\ast$] If the function is $\mu$-strongly convex: GD converges at $O\bigl(\log(1/\varepsilon)\bigr)$.
+  \item[$\ast$] If the function follows the Polyak--\L{}ojasiewicz condition: GD converges at $O\bigl(\log(1/\varepsilon)\bigr)$.
+\end{itemize}

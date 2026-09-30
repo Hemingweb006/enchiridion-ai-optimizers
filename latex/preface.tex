@@ -1,0 +1,48 @@
+% =====================================================================
+\chapter*{Preface}
+\addcontentsline{toc}{chapter}{Preface}
+\markboth{Preface}{Preface}
+% =====================================================================
+
+\lettrine[lines=2,findent=2pt,nindent=0pt]{\color{inkred}E}{very} model we train, from a small linear regression to a large language model, learns in the same way: an optimizer follows the gradient of a loss, one step at a time, hoping to reach its minimum. This book is about those steps.
+
+It started, like the first \emph{Enchiridion}, as handwritten notes. From May to June 2026, I wrote by hand the theory of the optimizers used in machine learning and deep learning: first the mathematical tools (convexity and L-smoothness), then Gradient Descent and its proof of convergence, and then every idea that was added to it to make it faster, more stable, or more robust: Stochastic Gradient Descent, Momentum, Nesterov, RMSProp, Adam, AdamW, and the other versions of Adam, until the learning rate schedules that decide how fast we move.
+
+An \emph{enchiridion} is, in Greek, ``something that is held in the hand'': a handbook. This is the second one of the series, after \emph{The Enchiridion for Tree Based Algorithms Theory}.
+
+\section*{Who made this book}
+
+\begin{tcolorbox}[colback=paper,colframe=goldleaf,boxrule=0.8pt,arc=3pt,left=12pt,right=12pt]
+\textbf{Author.} The content of this book (the explanations, the proofs, the examples and the way of telling them) was created by \textbf{Reda Louriki}, in handwritten notes.
+
+\medskip
+\textbf{Typesetting.} The handwritten notes were transcribed and turned into \LaTeX\ by an AI, \textbf{Claude Opus 5.5} (Anthropic). The author's wording and examples were kept; only grammatical errors and mathematical errors were corrected. The part of the last chapter that the notes left unfinished (the warm up) was completed in the same spirit.
+\end{tcolorbox}
+
+Every time a correction changes the meaning of what was written in the notes (a formula, an index, a number, a name, or a conclusion), it is signalled with a footnote marked \textsf{\bfseries\color{inkgold}Editor's note}, so you can always see what the notes said and why it was changed. The list of all these changes is gathered at the end of the book, in \emph{Notes on this Edition}.
+
+\section*{How to read this book}
+
+The notes were written with several colours of ink, and each colour had a job. The book keeps the same code:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{l l}
+{\color{inkred}\itshape Red} & the titles of the chapters and the warnings \warn\\
+{\color{inkgreen}\itshape Green} & definitions, theorems, ``Problem'' and ``Solution''\\
+{\color{inkgold}\itshape ``Gold''} & the motto of each optimizer, in one sentence\\
+{\color{inkblue}\itshape Blue} & demonstrations and remarks\\
+{\color{inkpurple}\itshape Purple} & the questions you should be asking yourself at that moment\\
+\tikz[baseline=-0.6ex]\node[fill=goldpale!45,draw=goldleaf,inner sep=2pt,font=\itshape\color{inkgold}]{Gold boxes}; & the sentences worth remembering\\
+\end{tabular}
+\end{center}
+
+The chapters follow the logic of the ideas: each optimizer is born from a problem of the previous one. Every chapter starts with that problem, and ends with its solution. So the best way to read this book is in order.
+
+The prerequisites are some linear algebra (inner products, norms, eigenvalues), derivatives and gradients, some probability (expectation, variance), and the curiosity to ask ``why?'' at every line. The cover shows the idea of the whole book: the real trajectories of six of these optimizers, computed on the same loss landscape, from the same starting point, racing to the same minimum.
+
+\bigskip
+\begin{flushright}
+\itshape Reda Louriki\\
+2026
+\end{flushright}
